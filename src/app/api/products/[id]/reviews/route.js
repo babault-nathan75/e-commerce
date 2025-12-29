@@ -11,14 +11,19 @@ const CreateSchema = z.object({
   comment: z.string().min(2)
 });
 
-export async function GET(_req, { params }) {
+export async function GET(_req, context) {
+  const { id } = await context.params; // ✅ OK Next.js 16
+
   await connectDB();
 
-  const reviews = await Review.find({ productId: params.id }).sort({ createdAt: -1 });
+  const reviews = await Review.find({ productId: id })
+    .sort({ createdAt: -1 });
 
-  // On enrichit avec infos user (sans surcharger)
   const userIds = [...new Set(reviews.map((r) => r.userId.toString()))];
-  const users = await User.find({ _id: { $in: userIds } }).select("name");
+
+  const users = await User.find({ _id: { $in: userIds } })
+    .select("name");
+
   const map = new Map(users.map((u) => [u._id.toString(), u.name]));
 
   const payload = reviews.map((r) => ({
@@ -34,27 +39,76 @@ export async function GET(_req, { params }) {
   return NextResponse.json({ ok: true, reviews: payload });
 }
 
-export async function POST(req, { params }) {
+export async function POST(req, context) {
+  const { id } = await context.params; // ✅ OK Next.js 16
+
   const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const body = await req.json();
   const data = CreateSchema.parse(body);
 
   await connectDB();
 
-  // (Optionnel) empêcher plusieurs reviews du même user sur le même produit :
-  const exists = await Review.findOne({ productId: params.id, userId: session.user.id });
+  const user = await User.findById(session.user.id).select("name");
+  if (!user) {
+    return NextResponse.json(
+      { error: "Utilisateur introuvable" },
+      { status: 404 }
+    );
+  }
+
+  const exists = await Review.findOne({
+    productId: id,
+    userId: session.user.id
+  });
+
   if (exists) {
-    return NextResponse.json({ error: "Tu as déjà noté/commenté ce produit." }, { status: 409 });
+    return NextResponse.json(
+      { error: "Tu as déjà noté/commenté ce produit." },
+      { status: 409 }
+    );
   }
 
   const created = await Review.create({
-    productId: params.id,
+    productId: id,
     userId: session.user.id,
+    userName: user.name,
     rating: data.rating,
     comment: data.comment
   });
 
-  return NextResponse.json({ ok: true, reviewId: created._id.toString() }, { status: 201 });
+  return NextResponse.json(
+    { ok: true, reviewId: created._id.toString() },
+    { status: 201 }
+  );
+}
+
+export async function DELETE(_req, context) {
+  const { id } = await context.params; // ✅ OK Next.js 16
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await connectDB();
+
+  const review = await Review.findById(id);
+  if (!review) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const isAdmin = !!session.user.isAdmin;
+  const isOwner = review.userId.toString() === session.user.id;
+
+  if (!isAdmin && !isOwner) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  await review.deleteOne();
+
+  return NextResponse.json({ ok: true });
 }

@@ -6,13 +6,26 @@ export const useCartStore = create(
     (set, get) => ({
       items: [], // { productId, name, price, imageUrl, quantity }
 
-      addItem: (product) => {
-        const items = get().items.slice();
-        const idx = items.findIndex((i) => i.productId === product.productId);
-        if (idx >= 0) items[idx].quantity += 1;
-        else items.push({ ...product, quantity: 1 });
-        set({ items });
-      },
+      addItem: (product) =>
+  set((state) => {
+    const idx = state.items.findIndex(
+      (i) => i.productId === product.productId
+    );
+
+    if (idx >= 0) {
+      const items = [...state.items];
+      items[idx] = {
+        ...items[idx],
+        quantity: items[idx].quantity + 1
+      };
+      return { items };
+    }
+
+    return {
+      items: [...state.items, { ...product, quantity: 1 }]
+    };
+  }),
+
 
       increment: (productId) => {
         set({

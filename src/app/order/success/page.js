@@ -1,16 +1,19 @@
 import Link from "next/link";
 
-export default function OrderSuccessPage({ searchParams }) {
-  const code = searchParams?.code || "";
-  const email = searchParams?.email || "";
+export default async function OrderSuccessPage({ searchParams }) {
+  const { code = "", email = "" } = await searchParams; // ✅ OBLIGATOIRE en Next.js 16
 
   return (
     <div className="border rounded p-4">
-      <h1 className="text-2xl font-bold text-brand-green">Commande confirmée</h1>
+      <h1 className="text-2xl font-bold text-brand-green">
+        Commande confirmée
+      </h1>
 
       <p className="mt-3">
         Ton code de commande :
-        <span className="ml-2 font-bold text-brand-orange">{code}</span>
+        <span className="ml-2 font-bold text-brand-orange">
+          {code}
+        </span>
       </p>
 
       <div className="mt-4 space-y-2">

@@ -67,14 +67,14 @@ export default function CartPage() {
 
             <div className="mt-4 flex gap-3">
               <button
-                className="px-4 py-2 rounded bg-brand-orange text-white hover:opacity-90"
+                className="px-4 py-2 rounded bg-brand-orange text-red-800 hover:opacity-90"
                 onClick={clear}
               >
                 Vider le panier
               </button>
 
               <Link
-                className="px-4 py-2 rounded bg-brand-green text-white hover:opacity-90"
+                className="px-4 py-2 rounded bg-brand-green text-gray-800 hover:opacity-90"
                 href="/checkout"
               >
                 Passer la commande

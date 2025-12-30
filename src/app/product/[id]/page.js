@@ -35,7 +35,9 @@ export default async function ProductDetailsPage({ params }) {
           {p.description}
         </p>
 
-        <div className="mt-6 flex gap-3 flex-wrap">
+        <FavoriteButton productId={p._id.toString()} />
+        
+        <div className="mt-6 w-30 flex-wrap bg-red-600">
           <AddToCartButton
             product={{
               productId: p._id.toString(),
@@ -44,8 +46,8 @@ export default async function ProductDetailsPage({ params }) {
               imageUrl: p.imageUrl
             }}
           />
-          <FavoriteButton productId={p._id.toString()} />
         </div>
+        
 
         <ReviewsBox productId={p._id.toString()} />
       </div>

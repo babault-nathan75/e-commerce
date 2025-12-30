@@ -10,13 +10,20 @@ const nextStatusMap = {
   LIVRER: "LIVRER"
 };
 
-export async function GET(_req, { params }) {
+export async function GET(_req, context) {
+  const { id } = await context.params; // ✅ CORRECTION NEXT.JS 16
+
   const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   await connectDB();
-  const order = await Order.findById(params.id);
-  if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const order = await Order.findById(id);
+  if (!order) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   const isAdmin = !!session.user.isAdmin;
   const isOwner = order.userId && order.userId.toString() === session.user.id;
@@ -28,9 +35,13 @@ export async function GET(_req, { params }) {
   return NextResponse.json({ ok: true, order });
 }
 
-export async function PATCH(req, { params }) {
+export async function PATCH(req, context) {
+  const { id } = await context.params; // ✅ CORRECTION NEXT.JS 16
+
   const session = await getServerSession(authOptions);
-  if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const body = await req.json().catch(() => ({}));
   const requested = body.status;
@@ -40,11 +51,17 @@ export async function PATCH(req, { params }) {
   }
 
   await connectDB();
-  const order = await Order.findById(params.id);
-  if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const order = await Order.findById(id);
+  if (!order) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   if (order.canceledAt) {
-    return NextResponse.json({ error: "Commande annulée: statut non modifiable" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Commande annulée: statut non modifiable" },
+      { status: 400 }
+    );
   }
 
   const allowedNext = nextStatusMap[order.status];

@@ -52,7 +52,7 @@ export default function HomePage() {
               border-2 border-brand-green
               shadow-md
               transition-all duration-300
-              hover:bg-brand-green hover:text-white
+              hover:bg-brand-green hover:text-gray-900
               hover:scale-105
               focus:outline-none focus:ring-4 focus:ring-green-200
             "

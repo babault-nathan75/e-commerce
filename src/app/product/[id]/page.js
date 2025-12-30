@@ -37,7 +37,7 @@ export default async function ProductDetailsPage({ params }) {
 
         <FavoriteButton productId={p._id.toString()} />
         
-        <div className="mt-6 w-30 flex-wrap bg-red-600">
+        <div className="mt-6 w-40 flex-wrap bg-blue-600">
           <AddToCartButton
             product={{
               productId: p._id.toString(),

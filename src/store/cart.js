@@ -6,31 +6,37 @@ export const useCartStore = create(
     (set, get) => ({
       items: [], // { productId, name, price, imageUrl, quantity }
 
-      addItem: (product) =>
-  set((state) => {
-    const idx = state.items.findIndex(
-      (i) => i.productId === product.productId
-    );
+      // 🔁 Toggle produit (Commander / Retirer)
+      toggleItem: (product) =>
+        set((state) => {
+          const idx = state.items.findIndex(
+            (i) => i.productId === product.productId
+          );
 
-    if (idx >= 0) {
-      const items = [...state.items];
-      items[idx] = {
-        ...items[idx],
-        quantity: items[idx].quantity + 1
-      };
-      return { items };
-    }
+          // ➖ Déjà présent → retirer complètement
+          if (idx >= 0) {
+            const items = [...state.items];
+            items.splice(idx, 1);
+            return { items };
+          }
 
-    return {
-      items: [...state.items, { ...product, quantity: 1 }]
-    };
-  }),
+          // ➕ Pas présent → ajouter
+          return {
+            items: [...state.items, { ...product, quantity: 1 }]
+          };
+        }),
 
+      // 🔢 Total articles pour badge panier
+      totalItems: () =>
+        get().items.reduce((sum, i) => sum + i.quantity, 0),
 
+      // (Optionnel) garder pour autres écrans
       increment: (productId) => {
         set({
           items: get().items.map((i) =>
-            i.productId === productId ? { ...i, quantity: i.quantity + 1 } : i
+            i.productId === productId
+              ? { ...i, quantity: i.quantity + 1 }
+              : i
           )
         });
       },
@@ -40,7 +46,9 @@ export const useCartStore = create(
           items: get()
             .items
             .map((i) =>
-              i.productId === productId ? { ...i, quantity: i.quantity - 1 } : i
+              i.productId === productId
+                ? { ...i, quantity: i.quantity - 1 }
+                : i
             )
             .filter((i) => i.quantity > 0)
         });

@@ -16,12 +16,14 @@ const UpdateSchema = z.object({
 
 export async function GET(_req, { params }) {
   await connectDB();
-  const product = await Product.findById(params.id);
+  const { id } = await params;
+  const product = await Product.findById(id);
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true, product });
 }
 
 export async function PUT(req, { params }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
@@ -29,18 +31,19 @@ export async function PUT(req, { params }) {
   const body = await req.json();
   const data = UpdateSchema.parse(body);
 
-  const updated = await Product.findByIdAndUpdate(params.id, data, { new: true });
+  const updated = await Product.findByIdAndUpdate(id, data, { new: true });
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({ ok: true, product: updated });
 }
 
 export async function DELETE(_req, { params }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await connectDB();
-  const deleted = await Product.findByIdAndDelete(params.id);
+  const deleted = await Product.findByIdAndDelete(id);
   if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({ ok: true });

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 
 export default function EditProductPage({ params }) {
+  const { id } = use(params); // ✅ CORRECTION OFFICIELLE Next.js 16
   const router = useRouter();
-  const id = params.id;
 
   const [form, setForm] = useState({
     name: "",
@@ -20,13 +20,17 @@ export default function EditProductPage({ params }) {
   const [err, setErr] = useState("");
 
   useEffect(() => {
+    if (!id) return;
+
     async function load() {
       const res = await fetch(`/api/products/${id}`);
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
         setErr(data.error || "Produit introuvable");
         return;
       }
+
       const p = data.product;
       setForm({
         name: p.name,
@@ -36,6 +40,7 @@ export default function EditProductPage({ params }) {
         imageUrl: p.imageUrl
       });
     }
+
     load();
   }, [id]);
 
@@ -43,9 +48,14 @@ export default function EditProductPage({ params }) {
     const fd = new FormData();
     fd.append("file", file);
 
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: fd
+    });
+
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Upload échoué");
+
     return data.url;
   }
 
@@ -92,6 +102,7 @@ export default function EditProductPage({ params }) {
       const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Suppression échouée");
+
       router.push("/admin/products");
     } catch (e2) {
       setErr(e2.message || "Erreur");
@@ -102,7 +113,9 @@ export default function EditProductPage({ params }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-brand-green">Modifier produit</h1>
+      <h1 className="text-2xl font-bold text-brand-green">
+        Modifier produit
+      </h1>
 
       <form className="mt-4 space-y-3" onSubmit={onSubmit}>
         <div>
@@ -110,7 +123,9 @@ export default function EditProductPage({ params }) {
           <input
             className="border rounded px-3 py-2 w-full"
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, name: e.target.value })
+            }
           />
         </div>
 
@@ -119,7 +134,9 @@ export default function EditProductPage({ params }) {
           <input
             className="border rounded px-3 py-2 w-full"
             value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, price: e.target.value })
+            }
           />
         </div>
 
@@ -128,7 +145,9 @@ export default function EditProductPage({ params }) {
           <select
             className="border rounded px-3 py-2 w-full"
             value={form.channel}
-            onChange={(e) => setForm({ ...form, channel: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, channel: e.target.value })
+            }
           >
             <option value="shop">Boutique</option>
             <option value="library">Librairie</option>
@@ -140,27 +159,37 @@ export default function EditProductPage({ params }) {
           <textarea
             className="border rounded px-3 py-2 w-full min-h-28"
             value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, description: e.target.value })
+            }
           />
         </div>
 
-        <div>
-          <label className="block text-sm">Image actuelle</label>
-          {form.imageUrl ? (
-            <img src={form.imageUrl} alt="image" className="w-40 h-40 object-cover rounded border" />
-          ) : null}
-        </div>
+        {form.imageUrl && (
+          <div>
+            <label className="block text-sm">Image actuelle</label>
+            <img
+              src={form.imageUrl}
+              alt="image"
+              className="w-40 h-40 object-cover rounded border"
+            />
+          </div>
+        )}
 
         <div>
-          <label className="block text-sm">Changer l’image (optionnel)</label>
+          <label className="block text-sm">
+            Changer l’image (optionnel)
+          </label>
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            onChange={(e) =>
+              setFile(e.target.files?.[0] || null)
+            }
           />
         </div>
 
-        {err ? <p className="text-red-600">{err}</p> : null}
+        {err && <p className="text-red-600">{err}</p>}
 
         <div className="flex gap-3">
           <button

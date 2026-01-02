@@ -8,7 +8,8 @@ const ProductSchema = new mongoose.Schema(
     description: { type: String, required: true },
 
     channel: { type: String, enum: ["shop", "library"], required: true },
-    productType: { type: String, enum: ["physical", "digital"], default: "physical" }
+    productType: { type: String, enum: ["physical", "digital"], default: "physical" },
+    category: [{ type: String }]
   },
   { timestamps: true }
 );

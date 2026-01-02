@@ -65,7 +65,7 @@ export default function LoginPage() {
         {err ? <p className="text-red-600 text-sm">{err}</p> : null}
 
         <button
-          className="px-4 py-2 rounded bg-brand-orange text-white disabled:opacity-60"
+          className="px-4 py-2 rounded bg-brand-orange text-green-100 border border-brand-orange disabled:opacity-60 bg-green-600"
           disabled={loading}
           type="submit"
         >

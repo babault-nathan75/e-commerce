@@ -17,6 +17,9 @@ export default function MobileSidebar({ isAdmin }) {
           p-2 rounded-lg
           bg-white shadow-md
           md:hidden
+          border border-green-500
+          hover:bg-gray-100 transition
+          text-green-500
         "
       >
         <Menu className="w-6 h-6" />

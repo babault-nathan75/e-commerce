@@ -26,24 +26,24 @@ export default function AdminUsersList() {
     load();
   }, []);
 
-  async function toggleAdmin(userId, nextIsAdmin) {
-    setErr("");
-    try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isAdmin: nextIsAdmin })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Impossible de changer le rôle");
+  // async function toggleAdmin(userId, nextIsAdmin) {
+  //   setErr("");
+  //   try {
+  //     const res = await fetch(`/api/admin/users/${userId}`, {
+  //       method: "PATCH",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ isAdmin: nextIsAdmin })
+  //     });
+  //     const data = await res.json().catch(() => ({}));
+  //     if (!res.ok) throw new Error(data.error || "Impossible de changer le rôle");
 
-      setUsers((prev) =>
-        prev.map((u) => (u._id === userId ? { ...u, isAdmin: data.user.isAdmin } : u))
-      );
-    } catch (e) {
-      setErr(e.message || "Erreur");
-    }
-  }
+  //     setUsers((prev) =>
+  //       prev.map((u) => (u._id === userId ? { ...u, isAdmin: data.user.isAdmin } : u))
+  //     );
+  //   } catch (e) {
+  //     setErr(e.message || "Erreur");
+  //   }
+  // }
 
   async function removeUser(userId, email) {
     setErr("");
@@ -100,13 +100,13 @@ export default function AdminUsersList() {
                   {u.isAdmin ? "ADMIN" : "USER"}
                 </span>
 
-                <button
+                {/* <button
                   type="button"
                   className="px-3 py-2 rounded border hover:border-brand-green"
                   onClick={() => toggleAdmin(u._id, !u.isAdmin)}
                 >
                   {u.isAdmin ? "Retirer Admin" : "Mettre Admin"}
-                </button>
+                </button> */}
 
                 <button
                   type="button"

@@ -151,7 +151,7 @@ export default function ReviewsBox({ productId }) {
             className="
               inline-flex items-center justify-center
               px-6 py-3 rounded-xl
-              bg-gradient-to-r from-brand-green to-green-500
+              bg-gradient-to-r from-green-500 to-green-500
               text-white font-semibold
               shadow-md
               hover:shadow-lg hover:scale-[1.02]

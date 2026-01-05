@@ -23,7 +23,7 @@ export default function LoginPage() {
       const res = await signIn("credentials", {
         email,
         password,
-        redirect: false
+        redirect: false,
       });
 
       if (res?.error) {
@@ -33,20 +33,24 @@ export default function LoginPage() {
 
       router.push("/");
       router.refresh();
+    } catch (error) {
+      setErr("Une erreur est survenue lors de la connexion.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10 border rounded p-4">
-      <h1 className="text-2xl font-bold text-brand-green">Connexion</h1>
+    <div className="max-w-md mx-auto mt-10 border rounded-lg p-6 shadow-sm bg-white">
+      <h1 className="text-2xl font-bold text-green-700">Connexion</h1>
 
-      <form className="mt-4 space-y-3" onSubmit={onSubmit}>
+      <form className="mt-4 space-y-4" onSubmit={onSubmit}>
         <div>
-          <label className="block text-sm">Email</label>
+          <label className="block text-sm font-medium mb-1">Email</label>
           <input
-            className="border rounded px-3 py-2 w-full"
+            required
+            type="email"
+            className="border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-green-500"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="ex: user@email.com"
@@ -54,31 +58,34 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label className="block text-sm">Mot de passe</label>
-          <input
-            className="border rounded px-3 py-2 w-full"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="******"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-14 mt-3 text-gray-400 hover:text-brand-green transition"
-          >
-            {showPassword ? (
-              <EyeOff className="w-4 h-4" />
-            ) : (
-              <Eye className="w-4 h-4" />
-            )}
-          </button>
+          <label className="block text-sm font-medium mb-1">Mot de passe</label>
+          <div className="relative">
+            <input
+              required
+              className="border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-green-500"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="******"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-green-600 transition"
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
         </div>
 
-        {err ? <p className="text-red-600 text-sm">{err}</p> : null}
+        {err && <p className="text-red-600 text-sm font-medium">{err}</p>}
 
         <button
-          className="px-4 py-2 rounded bg-brand-orange text-green-100 border border-brand-orange disabled:opacity-60 bg-green-600"
+          className="w-full px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-60 transition"
           disabled={loading}
           type="submit"
         >
@@ -86,9 +93,9 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="mt-4 text-sm text-gray-700">
+      <p className="mt-4 text-sm text-gray-700 text-center">
         Pas de compte ?{" "}
-        <Link className="underline text-brand-green" href="/register">
+        <Link className="underline text-green-700 font-medium" href="/register">
           Inscription
         </Link>
       </p>

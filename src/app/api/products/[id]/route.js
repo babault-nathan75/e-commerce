@@ -11,7 +11,8 @@ const UpdateSchema = z.object({
   imageUrl: z.string().min(2).optional(),
   description: z.string().min(5).optional(),
   channel: z.enum(["shop", "library"]).optional(),
-  productType: z.enum(["physical", "digital"]).optional()
+  productType: z.enum(["physical", "digital"]).optional(),
+  category: z.array(z.string()).optional()
 });
 
 export async function GET(_req, { params }) {

@@ -3,51 +3,89 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import { Order } from "@/models/Order";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default async function OrdersPage() {
   const session = await getServerSession(authOptions);
+
   if (!session?.user) {
     return (
-      <div>
-        <h1 className="text-2xl font-bold text-brand-green">Mes commandes</h1>
-        <p className="mt-3">Tu dois être connecté.</p>
-        <Link className="underline text-brand-orange" href="/login">Connexion</Link>
-      </div>
+      <DashboardLayout>
+        <div className="max-w-3xl mx-auto py-10">
+          <h1 className="text-3xl font-bold text-brand-green">Mes commandes</h1>
+          <p className="mt-4 text-gray-700">Tu dois être connecté pour voir tes commandes.</p>
+          <Link
+            href="/login"
+            className="inline-block mt-4 px-4 py-2 rounded bg-brand-orange text-white font-semibold"
+          >
+            Connexion
+          </Link>
+        </div>
+      </DashboardLayout>
     );
   }
 
   await connectDB();
-  const orders = await Order.find({ userId: session.user.id }).sort({ createdAt: -1 });
+  const orders = await Order.find({ userId: session.user.id })
+    .sort({ createdAt: -1 })
+    .lean();
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-brand-green">Mes commandes</h1>
+    <DashboardLayout>
+      <div className="max-w-5xl mx-auto py-10 px-4">
+        <h1 className="text-3xl font-extrabold text-brand-green mb-6">
+          Mes commandes
+        </h1>
 
-      <div className="mt-4 space-y-3">
-        {orders.map((o) => (
-          <Link
-            key={o._id.toString()}
-            className="block border rounded p-3 hover:border-brand-orange"
-            href={`/orders/${o._id}`}
-          >
-            <div className="flex justify-between">
-              <strong>Code: {o.orderCode}</strong>
-              <span className="text-sm">{new Date(o.createdAt).toLocaleString()}</span>
-            </div>
+        {orders.length === 0 && (
+          <p className="text-gray-600">Aucune commande pour le moment.</p>
+        )}
 
-            <div className="mt-1 text-sm text-gray-700">
-              Statut: <strong>{o.status}</strong>
-              {o.canceledAt ? <span className="text-red-600"> • Annulée</span> : null}
-            </div>
+        <div className="grid gap-4">
+          {orders.map((o) => (
+            <Link
+              key={o._id.toString()}
+              href={`/orders/${o._id}`}
+              className="
+                block rounded-xl border bg-white p-5 shadow-sm
+                hover:border-brand-orange hover:shadow-md transition
+              "
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="font-bold text-lg">
+                    {o.orderCode}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {new Date(o.createdAt).toLocaleString()}
+                  </div>
+                </div>
 
-            <div className="mt-1 text-sm">
-              Articles: {o.totalItems} • Total: <strong className="text-brand-green">{o.totalPrice} FCFA</strong>
-            </div>
-          </Link>
-        ))}
+                <div className="text-right">
+                  <div className="text-sm">
+                    Statut :{" "}
+                    <span className="font-semibold text-brand-green">
+                      {o.status}
+                    </span>
+                  </div>
+                  {o.canceledAt && (
+                    <div className="text-sm text-red-600">
+                      Annulée
+                    </div>
+                  )}
+                </div>
+              </div>
 
-        {orders.length === 0 ? <p className="text-gray-600">Aucune commande.</p> : null}
+              <div className="mt-3 flex justify-between text-sm">
+                <span>Articles : {o.totalItems}</span>
+                <strong className="text-brand-orange">
+                  {o.totalPrice} FCFA
+                </strong>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

@@ -11,7 +11,8 @@ const ProductSchema = z.object({
   imageUrl: z.string().min(2),
   description: z.string().min(5),
   channel: z.enum(["shop", "library"]),
-  productType: z.enum(["physical", "digital"]).optional()
+  productType: z.enum(["physical", "digital"]).optional(),
+  category: z.array(z.string()).optional()
 });
 
 export async function GET(req) {
@@ -30,16 +31,21 @@ export async function POST(req) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  await connectDB();
-  const body = await req.json();
+  try {
+    await connectDB();
+    const body = await req.json();
 
-  // Attention: price peut arriver en string depuis un form => conversion dans l'UI
-  const data = ProductSchema.parse(body);
+    // Attention: price peut arriver en string depuis un form => conversion dans l'UI
+    const data = ProductSchema.parse(body);
 
-  const created = await Product.create({
-    ...data,
-    productType: data.productType || "physical"
-  });
+    const created = await Product.create({
+      ...data,
+      productType: data.productType || "physical",
+      category: data.category || []
+    });
 
-  return NextResponse.json({ ok: true, product: created }, { status: 201 });
+    return NextResponse.json({ ok: true, product: created }, { status: 201 });
+    }catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
 }

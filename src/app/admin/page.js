@@ -7,25 +7,29 @@ import {
   ShoppingBag,
   Package,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  Image as ImageIcon,
+  ChevronDown,
+  BookOpen,
+  Store
 } from "lucide-react";
 
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
 
 export default function AdminHome() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // États pour les menus déroulants
+  const [showShopMenu, setShowShopMenu] = useState(false);
+  const [showLibMenu, setShowLibMenu] = useState(false);
+
+  // Catégories segmentées selon ton modèle
+  const shopCategories = ["Électronique", "Mode", "Maison", "Beauté", "Informatique"];
+  const libCategories = ["Développement Personnel", "Business", "Scolaire", "Romans", "PDF"];
 
   useEffect(() => {
     async function load() {
@@ -43,184 +47,160 @@ export default function AdminHome() {
     load();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Chargement du dashboard…
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-600">
-        {error}
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500 italic">Analyse des données en cours...</div>;
+  if (error) return <div className="min-h-screen flex items-center justify-center text-red-600 font-bold">{error}</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-yellow-50 px-6 py-8">
+    <div className="min-h-screen bg-[#f8fafc] px-4 md:px-6 py-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* HEADER + NAV BUTTONS */}
-        <div className="flex items-center justify-between gap-6">
+        
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-extrabold text-brand-green">
-              Admin Dashboard
-            </h1>
-            <p className="text-gray-600">
-              Vue globale de l’activité (données réelles)
-            </p>
+            <h1 className="text-3xl font-black text-brand-green tracking-tight">ADMIN PANEL</h1>
+            <p className="text-gray-500 text-sm">Contrôle global : Boutique & Librairie</p>
           </div>
 
-          {/* ✅ Navbar horizontale à droite */}
-          <nav className="flex items-center gap-3">
-            <AdminNav href="/admin/users" title="Utilisateurs">
-              <Users className="w-5 h-5" />
-            </AdminNav>
+          {/* ✅ NAVIGATION PRINCIPALE REVISITÉE */}
+          <nav className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+            <AdminNav href="/admin/users" title="Clients"><Users className="w-5 h-5" /></AdminNav>
+            <AdminNav href="/admin/orders" title="Ventes"><ShoppingBag className="w-5 h-5" /></AdminNav>
 
-            <AdminNav href="/admin/orders" title="Commandes">
-              <ShoppingBag className="w-5 h-5" />
-            </AdminNav>
+            {/* --- DROPDOWN BOUTIQUE --- */}
+            <div className="relative">
+              <button 
+                onClick={() => { setShowShopMenu(!showShopMenu); setShowLibMenu(false); }}
+                className={`flex items-center gap-2 p-3 rounded-xl transition-all ${showShopMenu ? 'bg-brand-green text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+              >
+                <Store className="w-5 h-5" />
+                <span className="text-sm font-bold hidden md:block">Boutique</span>
+                <ChevronDown className={`w-4 h-4 transition ${showShopMenu ? 'rotate-180' : ''}`} />
+              </button>
 
-            <AdminNav href="/admin/products" title="Produits">
-              <Package className="w-5 h-5" />
-            </AdminNav>
+              {showShopMenu && (
+                <div className="absolute left-0 md:right-0 mt-2 w-56 bg-white border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="p-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b">Rayons Boutique</div>
+                  {shopCategories.map((cat) => (
+                    <Link key={cat} href={`/admin/products?channel=shop&category=${cat}`} className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-green/10 hover:text-brand-green transition" onClick={() => setShowShopMenu(false)}>
+                      {cat}
+                    </Link>
+                  ))}
+                  <Link href="/admin/products?channel=shop" className="block px-4 py-3 text-sm font-bold text-brand-orange bg-orange-50" onClick={() => setShowShopMenu(false)}>
+                    Voir tout le Shop
+                  </Link>
+                </div>
+              )}
+            </div>
 
-            <AdminNav href="/admin/reviews" title="Avis">
-              <MessageSquare className="w-5 h-5" />
-            </AdminNav>
+            {/* --- DROPDOWN LIBRAIRIE --- */}
+            <div className="relative">
+              <button 
+                onClick={() => { setShowLibMenu(!showLibMenu); setShowShopMenu(false); }}
+                className={`flex items-center gap-2 p-3 rounded-xl transition-all ${showLibMenu ? 'bg-[#232f3e] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+              >
+                <BookOpen className="w-5 h-5" />
+                <span className="text-sm font-bold hidden md:block">Librairie</span>
+                <ChevronDown className={`w-4 h-4 transition ${showLibMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showLibMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="p-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b">Rayons Librairie</div>
+                  {libCategories.map((cat) => (
+                    <Link key={cat} href={`/admin/products?channel=library&category=${cat}`} className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition" onClick={() => setShowLibMenu(false)}>
+                      {cat}
+                    </Link>
+                  ))}
+                  <Link href="/admin/products?channel=library" className="block px-4 py-3 text-sm font-bold text-blue-800 bg-blue-50" onClick={() => setShowLibMenu(false)}>
+                    Voir toute la Librairie
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            <AdminNav href="/admin/banners" title="Pub"><ImageIcon className="w-5 h-5" /></AdminNav>
           </nav>
         </div>
 
-        {/* KPI */}
+        {/* STATS CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Inscriptions (semaine)" value={data.users.week} />
-          <StatCard title="Inscriptions (mois)" value={data.users.month} />
-          <StatCard title="Commandes (mois)" value={data.orders.month} />
-          <StatCard
-            title="Chiffre d’affaires (livrées)"
-            value={`${data.revenue.toLocaleString()} FCFA`}
-          />
+          <StatCard title="Nouveaux Clients" value={data.users.month} color="text-blue-600" />
+          <StatCard title="Ventes du mois" value={data.orders.month} color="text-orange-500" />
+          <StatCard title="Revenue Total" value={`${data.revenue.toLocaleString()} FCFA`} color="text-emerald-600" />
+          <StatCard title="Performance" value="+12.5%" color="text-purple-600" />
         </div>
 
         {/* GRAPHIQUES */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartBox title="Inscriptions (7 derniers jours)" icon={<Users className="w-5 h-5" />}>
+          <ChartBox title="Croissance Utilisateurs" icon={<Users className="w-5 h-5" />}>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={data.charts.users}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  dataKey="value"
-                  stroke="#16a34a"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="label" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                <Line type="monotone" dataKey="value" stroke="#16a34a" strokeWidth={4} dot={{ r: 4, fill: '#16a34a' }} activeDot={{ r: 8 }} />
               </LineChart>
             </ResponsiveContainer>
           </ChartBox>
 
-          <ChartBox title="Commandes (année)" icon={<BarChart3 className="w-5 h-5" />}>
+          <ChartBox title="Volume des Commandes" icon={<BarChart3 className="w-5 h-5" />}>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={data.charts.orders}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
-                <YAxis />
-                <Tooltip />
-                <Bar
-                  dataKey="value"
-                  fill="#f97316"
-                  radius={[6, 6, 0, 0]}
-                />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="label" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                <Bar dataKey="value" fill="#f97316" radius={[6, 6, 0, 0]} barSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </ChartBox>
         </div>
 
-        {/* EXTRA KPIs (si tu veux afficher aussi jour/semaine/année) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <MiniCard
-            title="Commandes (jour / semaine / année)"
-            lines={[
-              { k: "Aujourd’hui", v: data.orders.day },
-              { k: "Semaine", v: data.orders.week },
-              { k: "Année", v: data.orders.year }
-            ]}
-          />
-          <MiniCard
-            title="Inscriptions (semaine / mois / année)"
-            lines={[
-              { k: "Semaine", v: data.users.week },
-              { k: "Mois", v: data.users.month },
-              { k: "Année", v: data.users.year }
-            ]}
-          />
+        {/* QUICK LINK BANNER */}
+        <div className="bg-[#232f3e] rounded-3xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl relative overflow-hidden">
+          <div className="relative z-10">
+            <h2 className="text-2xl font-bold">Marketing & Publicité</h2>
+            <p className="opacity-70 mt-2 max-w-md">Mettez à jour vos bannières pour booster les ventes de la librairie ou de la boutique.</p>
+          </div>
+          <Link href="/admin/banners" className="relative z-10 bg-brand-orange text-white px-8 py-4 rounded-2xl font-black hover:scale-105 transition shadow-lg">
+            CONFIGURER LES BANNIÈRES
+          </Link>
+          <ImageIcon className="absolute right-[-20px] bottom-[-20px] w-64 h-64 text-white/5 -rotate-12" />
         </div>
+
       </div>
     </div>
   );
 }
 
-/* ---------------- COMPONENTS ---------------- */
+/* --- SOUS-COMPOSANTS --- */
 
 function AdminNav({ href, title, children }) {
   return (
-    <Link
-      href={href}
-      title={title}
-      className="
-        group relative
-        p-3 rounded-xl
-        bg-white border border-gray-100
-        text-gray-700
-        hover:border-brand-orange hover:text-brand-orange
-        hover:shadow-md hover:-translate-y-0.5
-        transition-all duration-300
-      "
-    >
+    <Link href={href} className="flex items-center gap-2 p-3 rounded-xl bg-white text-gray-700 hover:bg-gray-50 hover:text-brand-green transition-all border border-transparent hover:border-gray-100">
       {children}
+      <span className="text-sm font-bold hidden lg:block">{title}</span>
     </Link>
   );
 }
 
-function StatCard({ title, value }) {
+function StatCard({ title, value, color }) {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-      <div className="text-sm text-gray-500">{title}</div>
-      <div className="mt-2 text-2xl font-extrabold text-brand-green">
-        {value}
-      </div>
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{title}</div>
+      <div className={`mt-2 text-2xl font-black ${color}`}>{value}</div>
     </div>
   );
 }
 
 function ChartBox({ title, icon, children }) {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
-        <span className="text-brand-green">{icon}</span>
-        {title}
+    <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+      <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-3 italic">
+        <div className="p-2 bg-gray-50 rounded-lg text-brand-green">{icon}</div> {title}
       </h3>
       {children}
-    </div>
-  );
-}
-
-function MiniCard({ title, lines }) {
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="font-bold text-lg text-gray-800 mb-3">{title}</h3>
-      <div className="space-y-2">
-        {lines.map((l, idx) => (
-          <div key={idx} className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">{l.k}</span>
-            <span className="font-bold text-brand-orange">{l.v}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

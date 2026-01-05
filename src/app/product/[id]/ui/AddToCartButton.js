@@ -42,7 +42,7 @@ export default function AddToCartButton({ product }) {
 
       {/* Texte */}
       <span className="text-green-500 font-bold">
-        {isInCart ? "Retirer" : "Commander"}
+        {isInCart ? "Retirer du panier" : "Ajouter au panier"}
       </span>
     </button>
   );

@@ -6,24 +6,21 @@ import { Order } from "@/models/Order";
 import { User } from "@/models/User";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { sendOrderEmail, buildOrderText } from "@/lib/mailer";
+import { sendOrderEmail, buildOrderText, buildOrderHTML } from "@/lib/mailer";
 import { notifyAdmins } from "@/lib/notifyAdmins";
 import { generateInvoicePDF } from "@/lib/pdf/invoice";
+import { sendWhatsAppMessage } from "@/lib/whatsapp";
 
-/* ===============================
-   SCHEMA ZOD
-================================ */
+const emptyToUndefined = (val) =>
+  typeof val === "string" && val.trim() === "" ? undefined : val;
+
 const CreateOrderSchema = z.object({
-  items: z.array(
-    z.object({
-      productId: z.string().min(1),
-      quantity: z.number().int().min(1)
-    })
-  ).min(1),
-
-  deliveryAddress: z.string().min(5),
-  contactPhone: z.string().min(6),
-
+  items: z.array(z.object({
+    productId: z.string().min(1),
+    quantity: z.number().int().min(1)
+  })).min(1),
+  deliveryAddress: z.preprocess(emptyToUndefined, z.string().min(5).optional()),
+  contactPhone: z.preprocess(emptyToUndefined, z.string().min(6).optional()),
   guest: z.object({
     name: z.string().min(2),
     email: z.string().email(),
@@ -32,40 +29,12 @@ const CreateOrderSchema = z.object({
   }).optional()
 });
 
-/* ===============================
-   UTILS
-================================ */
 function generateOrderCode() {
   const rand = Math.random().toString(16).slice(2, 8).toUpperCase();
   const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
   return `ME-${date}-${rand}`;
 }
 
-/* ===============================
-   GET ORDERS
-================================ */
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  await connectDB();
-
-  const filter = session.user.isAdmin
-    ? {}
-    : { userId: session.user.id };
-
-  const orders = await Order.find(filter)
-    .sort({ createdAt: -1 })
-    .limit(200);
-
-  return NextResponse.json({ ok: true, orders });
-}
-
-/* ===============================
-   CREATE ORDER
-================================ */
 export async function POST(req) {
   const session = await getServerSession(authOptions);
 
@@ -75,12 +44,12 @@ export async function POST(req) {
 
     await connectDB();
 
-    /* 🔒 Anti-triche */
-    const ids = data.items.map(i => i.productId);
+    /* 🔒 Vérification Produits & Prix */
+    const ids = data.items.map((i) => i.productId);
     const products = await Product.find({ _id: { $in: ids } });
-    const map = new Map(products.map(p => [p._id.toString(), p]));
+    const map = new Map(products.map((p) => [p._id.toString(), p]));
 
-    const items = data.items.map(i => {
+    const items = data.items.map((i) => {
       const p = map.get(i.productId);
       if (!p) throw new Error("Produit introuvable");
       return {
@@ -91,120 +60,77 @@ export async function POST(req) {
       };
     });
 
-    const totalItems = items.reduce((s, i) => s + i.quantity, 0);
     const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
-
     const orderCode = generateOrderCode();
-    const isGuest = !session?.user;
-
+    
+    /* 💾 Création de la commande */
     const order = await Order.create({
       orderCode,
       items,
-      totalItems,
+      totalItems: items.reduce((s, i) => s + i.quantity, 0),
       totalPrice,
       status: "EFFECTUER",
       userId: session?.user?.id || null,
       deliveryAddress: data.deliveryAddress,
       contactPhone: data.contactPhone,
-      guest: isGuest ? data.guest : null
+      guest: !session?.user ? data.guest : null
     });
 
-    /* ===============================
-       INFOS CLIENT
-    ============================== */
-    let customerName = "";
-    let customerEmail = "";
-    let customerPhone = "";
-    let deliveryAddress = order.deliveryAddress;
-
+    /* 👤 Identification du Client */
+    let customerName = "", customerEmail = "", customerPhone = "", deliveryAddress = "";
     if (order.guest?.email) {
       customerName = order.guest.name;
       customerEmail = order.guest.email;
       customerPhone = order.guest.phone;
       deliveryAddress = order.guest.deliveryAddress;
-    } else if (order.userId) {
-      const user = await User.findById(order.userId)
-        .select("name email phone address");
-      customerName = user?.name || "";
+    } else {
+      const user = await User.findById(order.userId);
+      customerName = user?.name || "Client";
       customerEmail = user?.email || "";
-      customerPhone = order.contactPhone || user?.phone || "";
-      deliveryAddress = order.deliveryAddress || user?.address || "";
+      customerPhone = data.contactPhone || user?.phone || "";
+      deliveryAddress = data.deliveryAddress || user?.address || "";
     }
 
-    /* ===============================
-       EMAIL CONTENT
-    ============================== */
-    const orderForMail = {
-      orderCode: order.orderCode,
-      createdAt: order.createdAt,
-      status: order.status,
-      items: order.items,
-      totalItems: order.totalItems,
-      totalPrice: order.totalPrice,
-      customerName,
-      customerEmail,
-      customerPhone,
-      deliveryAddress
-    };
+    const orderForMail = { ...order._doc, customerName, customerEmail, customerPhone, deliveryAddress };
 
-    const text = buildOrderText(orderForMail);
-
-    /* 📄 PDF FACTURE */
+    /* 📄 Génération PDF */
     let pdfBuffer = null;
-    try {
-      pdfBuffer = await generateInvoicePDF(orderForMail);
-    } catch (e) {
-      console.warn("⚠️ Facture PDF non générée:", e);
-    }
+    try { 
+        pdfBuffer = await generateInvoicePDF(orderForMail); 
+    } catch (e) { 
+        console.error("❌ Détail Erreur PDF:", e.message); // Modifie ceci pour voir le vrai problème
+      }
 
-    /* ===============================
-       EMAIL ADMINS
-    ============================== */
-    const admins = await User.find({ isAdmin: true }).select("email");
+    /* ✉️ Envoi Emails (Admin & Client) */
+    const admins = await User.find({ isAdmin: true }).select("email phone");
     const adminEmails = admins.map(a => a.email).filter(Boolean);
+    const mailText = buildOrderText(orderForMail);
+    const mailHtml = buildOrderHTML(orderForMail);
 
-    if (adminEmails.length > 0) {
-      await sendOrderEmail({
-        to: process.env.RESEND_ADMIN_FALLBACK || adminEmails[0],
-        bcc: adminEmails,
-        subject: `Nouvelle commande ${order.orderCode}`,
-        text,
-        pdfBuffer,
-        filename: `commande-${order.orderCode}.pdf`
-      });
-    }
+    const emailPayload = { subject: `Commande ${orderCode}`, text: mailText, html: mailHtml, pdfBuffer, filename: `facture-${orderCode}.pdf` };
 
-    /* ===============================
-       EMAIL CLIENT
-    ============================== */
-    if (customerEmail) {
-      await sendOrderEmail({
-        to: customerEmail,
-        subject: `Votre commande ${order.orderCode}`,
-        text,
-        pdfBuffer,
-        filename: `commande-${order.orderCode}.pdf`
-      });
-    }
+    if (adminEmails.length > 0) await sendOrderEmail({ ...emailPayload, to: adminEmails[0], bcc: adminEmails });
+    if (customerEmail) await sendOrderEmail({ ...emailPayload, to: customerEmail });
 
-    /* 🔔 NOTIFICATION INTERNE ADMINS */
-    await notifyAdmins({
-      title: "Nouvelle commande 🛒",
-      message: `Commande ${order.orderCode} créée`,
-      link: "/admin/orders"
+    /* 📱 WhatsApp (Client & Admins) */
+    const waBodyClient = `👋 Bonjour ${customerName} ! Votre commande ${orderCode} (${totalPrice} FCFA) a été reçue. Merci de votre confiance !`;
+    const waBodyAdmin = `🚨 NOUVELLE COMMANDE 🚨\nCode: ${orderCode}\nClient: ${customerName}\nMontant: ${totalPrice} FCFA.`;
+
+    // Formatage numéro (Ex: CI +225)
+    const formatNum = (n) => n.startsWith('+') ? n : `+225${n}`;
+
+    if (customerPhone) sendWhatsAppMessage(formatNum(customerPhone), waBodyClient).catch(console.error);
+    admins.forEach(admin => {
+      if (admin.phone) sendWhatsAppMessage(formatNum(admin.phone), waBodyAdmin).catch(console.error);
     });
 
-    return NextResponse.json({
-      ok: true,
-      orderId: order._id.toString(),
-      orderCode: order.orderCode
-    });
+    /* 🔔 Dashboard Alert */
+    await notifyAdmins({ title: "Nouvelle commande 🛒", message: `Commande ${orderCode} de ${totalPrice} FCFA` });
+
+    return NextResponse.json({ ok: true, orderId: order._id, orderCode });
 
   } catch (err) {
     console.error("ORDER ERROR:", err);
-    return NextResponse.json(
-      { error: err.message || "Commande invalide" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: err.message || "Erreur serveur" }, { status: 400 });
   }
 }

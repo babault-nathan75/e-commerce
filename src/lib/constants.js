@@ -1,0 +1,2 @@
+export const SHOP_CATEGORIES = ["Électronique", "Mode", "Maison", "Beauté", "Informatique"];
+export const LIBRARY_CATEGORIES = ["Développement Personnel", "Business", "Scolaire", "Romans", "Documents PDF"];

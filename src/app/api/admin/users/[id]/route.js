@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import sanitize from 'mongo-sanitize';
 
 const PatchSchema = z.object({
   isAdmin: z.boolean()
@@ -18,7 +19,8 @@ export async function PATCH(req, context) {
   }
 
   const body = await req.json();
-  const data = PatchSchema.parse(body);
+  const cleanBody = sanitize(body);
+  const data = PatchSchema.parse(cleanBody);
 
   await connectDB();
 

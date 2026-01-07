@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db";
 import { Banner } from "@/models/Banner";
 import { NextResponse } from "next/server";
+import sanitize from 'mongo-sanitize';
 
 // GET : Récupérer toutes les bannières
 export async function GET() {
@@ -14,7 +15,8 @@ export async function POST(req) {
   try {
     await connectDB();
     const body = await req.json();
-    const banner = await Banner.create(body);
+    const cleanBody = sanitize(body);
+    const banner = await Banner.create(cleanBody);
     return NextResponse.json(banner);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

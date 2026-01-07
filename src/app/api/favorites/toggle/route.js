@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import sanitize from 'mongo-sanitize';
 
 const ToggleSchema = z.object({
   productId: z.string().min(1)
@@ -14,7 +15,8 @@ export async function POST(req) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const data = ToggleSchema.parse(body);
+  const cleanBody = sanitize(body);
+  const data = ToggleSchema.parse(cleanBody);
 
   await connectDB();
 

@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import sanitize from 'mongo-sanitize';
 
 const RegisterSchema = z.object({
   name: z.string().min(2),
@@ -14,7 +15,8 @@ const RegisterSchema = z.object({
 export async function POST(req) {
   try {
     const body = await req.json();
-    const data = RegisterSchema.parse(body);
+    const cleanBody = sanitize(body);
+    const data = RegisterSchema.parse(cleanBody);
 
     await connectDB();
 

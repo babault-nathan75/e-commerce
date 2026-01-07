@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import sanitize from 'mongo-sanitize';
 
 const Schema = z.object({
   oldPassword: z.string().min(6),
@@ -16,7 +17,8 @@ export async function PATCH(req) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const data = Schema.parse(body);
+  const cleanBody = sanitize(body);
+  const data = Schema.parse(cleanBody);
 
   await connectDB();
   const user = await User.findById(session.user.id);

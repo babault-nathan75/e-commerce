@@ -10,6 +10,7 @@ import { sendOrderEmail, buildOrderText, buildOrderHTML } from "@/lib/mailer";
 import { notifyAdmins } from "@/lib/notifyAdmins";
 import { generateInvoicePDF } from "@/lib/pdf/invoice";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
+import sanitize from 'mongo-sanitize';
 
 const emptyToUndefined = (val) =>
   typeof val === "string" && val.trim() === "" ? undefined : val;
@@ -40,7 +41,8 @@ export async function POST(req) {
 
   try {
     const body = await req.json();
-    const data = CreateOrderSchema.parse(body);
+    const cleanBody = sanitize(body);
+    const data = CreateOrderSchema.parse(cleanBody);
 
     await connectDB();
 

@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import { Order } from "@/models/Order";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import sanitize from 'mongo-sanitize';
 
 const CancelSchema = z.object({
   cancelReason: z.string().min(5)
@@ -14,7 +15,8 @@ export async function POST(req, { params }) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const data = CancelSchema.parse(body);
+  const cleanBody = sanitize(body);
+  const data = CancelSchema.parse(cleanBody);
 
   await connectDB();
   const order = await Order.findById(params.id);

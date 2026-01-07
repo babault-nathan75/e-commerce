@@ -5,6 +5,7 @@ import { Review } from "@/models/Review";
 import { User } from "@/models/User";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import sanitize from 'mongo-sanitize';
 
 const CreateSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -48,7 +49,8 @@ export async function POST(req, context) {
   }
 
   const body = await req.json();
-  const data = CreateSchema.parse(body);
+  const cleanBody = sanitize(body);
+  const data = CreateSchema.parse(cleanBody);
 
   await connectDB();
 

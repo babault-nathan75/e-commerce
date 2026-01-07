@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { Order } from "@/models/Order";
+import sanitize from 'mongo-sanitize';
 
 const CancelSchema = z.object({
   orderCode: z.string().min(3),
@@ -13,7 +14,8 @@ export async function POST(req) {
   await connectDB();
 
   const body = await req.json();
-  const data = CancelSchema.parse(body);
+  const cleanBody = sanitize(body);
+  const data = CancelSchema.parse(cleanBody);
 
   const order = await Order.findOne({
     orderCode: data.orderCode.trim(),

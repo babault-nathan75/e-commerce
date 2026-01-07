@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import sanitize from 'mongo-sanitize';
 
 export async function POST(req) {
   try {
+    const body = await req.json();
+    const cleanBody = sanitize(body);
     const data = await req.formData();
     const file = data.get("file");
 

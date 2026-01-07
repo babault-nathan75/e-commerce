@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import { Order } from "@/models/Order";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import sanitize from 'mongo-sanitize';
 
 const nextStatusMap = {
   EFFECTUER: "EN_COURS_DE_LIVRAISON",
@@ -44,7 +45,8 @@ export async function PATCH(req, context) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const requested = body.status;
+  const cleanBody = sanitize(body);
+  const requested = cleanBody.status;
 
   if (!["EFFECTUER", "EN_COURS_DE_LIVRAISON", "LIVRER"].includes(requested)) {
     return NextResponse.json({ error: "Statut invalide" }, { status: 400 });

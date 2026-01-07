@@ -4,6 +4,8 @@ import { connectDB } from "@/lib/db";
 import { Product } from "@/models/Product";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import sanitize from 'mongo-sanitize';
+
 
 const UpdateSchema = z.object({
   name: z.string().min(2).optional(),
@@ -30,7 +32,8 @@ export async function PUT(req, { params }) {
 
   await connectDB();
   const body = await req.json();
-  const data = UpdateSchema.parse(body);
+  const cleanBody = sanitize(body);
+  const data = UpdateSchema.parse(cleanBody);
 
   const updated = await Product.findByIdAndUpdate(id, data, { new: true });
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });

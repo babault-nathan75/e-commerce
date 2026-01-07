@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

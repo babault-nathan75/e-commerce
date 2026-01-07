@@ -6,7 +6,17 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useCartStore } from "@/store/cart";
-import { ShoppingCart, User, Home, LogIn } from "lucide-react";
+import { 
+  ShoppingCart, 
+  User, 
+  Home, 
+  LogIn, 
+  Mail, 
+  Phone, 
+  ArrowLeft, 
+  Loader2, 
+  CheckCircle2 
+} from "lucide-react";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -32,11 +42,6 @@ export default function CheckoutPage() {
     name: "",
     email: "",
     phone: "",
-    deliveryAddress: ""
-  });
-
-  const [account, setAccount] = useState({
-    contactPhone: "",
     deliveryAddress: ""
   });
 
@@ -89,13 +94,15 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
+      // Pour les comptes connectés, on utilise les infos de base
+      // On pourrait aussi ajouter un formulaire d'adresse ici
       const payload = {
         items: items.map((i) => ({
           productId: i.productId,
           quantity: i.quantity
         })),
-        deliveryAddress: account.deliveryAddress,
-        contactPhone: account.contactPhone
+        deliveryAddress: "Adresse enregistrée", // À dynamiser si besoin
+        contactPhone: session.user.phone || "Non renseigné"
       };
 
       const data = await createOrder(payload);
@@ -108,175 +115,190 @@ export default function CheckoutPage() {
     }
   }
 
-  if (status === "loading") return <div>Chargement...</div>;
+  if (status === "loading") return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="w-10 h-10 animate-spin text-brand-green" />
+    </div>
+  );
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-b from-white to-yellow-50 px-6 py-10">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white px-4 py-10">
+        <div className="max-w-2xl mx-auto">
 
           {/* HEADER */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-3 rounded-xl bg-orange-100 text-orange-600">
-              <ShoppingCart className="w-6 h-6" />
-            </div>
-            <h1 className="text-3xl font-extrabold text-brand-green">
-              Finaliser la commande
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full transition">
+               <ArrowLeft className="w-6 h-6 text-gray-600" />
+            </button>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-800 uppercase tracking-tight">
+              Paiement
             </h1>
           </div>
 
-          {/* RÉCAP */}
-          <div className="bg-white rounded-2xl border shadow-sm p-6 mb-8">
-            <div className="flex justify-between">
-              <span>Articles</span>
-              <strong>{totalItems}</strong>
-            </div>
-            <div className="flex justify-between mt-2 text-lg font-bold">
-              <span>Total</span>
-              <span className="text-brand-orange">{totalPrice} FCFA</span>
+          {/* RÉCAPITULATIF COMMANDE */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
+            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Résumé</h2>
+            <div className="space-y-3">
+              <div className="flex justify-between text-gray-600">
+                <span>Nombre d'articles</span>
+                <span className="font-semibold">{totalItems}</span>
+              </div>
+              <div className="flex justify-between items-end pt-3 border-t">
+                <span className="text-gray-800 font-medium">Total à payer</span>
+                <span className="text-2xl font-black text-brand-green">{totalPrice.toLocaleString()} FCFA</span>
+              </div>
             </div>
           </div>
 
-          {/* ================= CONNECTÉ ================= */}
-          {isLoggedIn ? (
-              /* ================= CONNECTÉ ================= */
-              <div className="bg-white rounded-2xl border shadow-sm p-6 text-center">
-                <h2 className="text-xl font-bold mb-2 text-brand-green">
-                  Prêt à commander 🚀
+          {/* LOGIQUE D'AFFICHAGE */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
+            
+            {isLoggedIn ? (
+              /* ================= MODE CONNECTÉ ================= */
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2 text-brand-green">
+                  Prêt à commander ?
                 </h2>
-
-                <p className="text-sm text-gray-600 mb-6">
-                  Connecté en tant que <strong>{session.user.email}</strong>
+                <p className="text-gray-500 mb-8">
+                  Votre commande sera associée à : <br/>
+                  <span className="font-bold text-gray-700">{session.user.email}</span>
                 </p>
 
-                {err && <p className="text-red-600 mb-3">{err}</p>}
+                {err && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{err}</div>}
 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <div className="flex flex-col gap-3">
                   <button
                     onClick={submitAccount}
                     disabled={loading}
-                    className="
-                      flex-1 sm:flex-none
-                      px-8 py-3 rounded-xl
-                      bg-green-500 text-white
-                      font-bold text-lg
-                      hover:opacity-90
-                      disabled:opacity-60
-                    "
+                    className="w-full py-4 rounded-xl bg-brand-green text-white font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
                   >
-                    {loading ? "Commande en cours..." : "Commander"}
+                    {loading ? "Traitement..." : "Confirmer ma commande"}
                   </button>
-
-                  <Link
-                    href="/cart"
-                    className="
-                      px-6 py-3 rounded-xl
-                      border font-semibold
-                      hover:bg-gray-900
-                      hover:text-white
-                    "
-                  >
-                    Retour
-                  </Link>
-
-                  <Link
-                    href="/"
-                    className="
-                      px-6 py-3 rounded-xl
-                      border font-semibold
-                      hover:bg-gray-900
-                      hover:text-white
-                    "
-                  >
-                    Accueil
+                  <Link href="/cart" className="text-sm text-gray-500 hover:text-gray-800 font-medium py-2">
+                    Modifier mon panier
                   </Link>
                 </div>
               </div>
-            ) : (
-              /* ================= NON CONNECTÉ ================= */
-              <div className="bg-white rounded-2xl border shadow-sm p-6">
-                {!guestMode ? (
-                  <div className="space-y-4 text-center">
-                    <button
-                      onClick={() =>
-                        router.push("/login?redirect=/checkout")
-                      }
-                      className="
-                        w-full py-3 rounded-xl
-                        bg-brand-green text-white
-                        font-bold flex items-center
-                        justify-center gap-2
-                      "
-                    >
-                      Connexion
-                    </button>
 
-                    <button
-                      onClick={() => setGuestMode(true)}
-                      className="
-                        w-full py-3 rounded-xl
-                        border font-semibold
-                      "
-                    >
-                      Commander en mode invité
-                    </button>
+            ) : (
+              /* ================= MODE NON CONNECTÉ ================= */
+              <div className="p-1">
+                {!guestMode ? (
+                  <div className="p-8 space-y-6 text-center">
+                    <div className="space-y-2">
+                      <h2 className="text-xl font-bold text-gray-800">Comment souhaitez-vous continuer ?</h2>
+                      <p className="text-sm text-gray-500">Connectez-vous pour suivre vos commandes plus facilement.</p>
+                    </div>
+
+                    <div className="grid gap-4">
+                      <button
+                        onClick={() => router.push("/login?redirect=/checkout")}
+                        className="w-full border-2 border-gray-400 py-4 rounded-xl bg-brand-green text-gray-800 font-bold flex items-center justify-center gap-3 hover:bg-green-700 hover:text-white transition shadow-md"
+                      >
+                        <LogIn className="w-5 h-5" />
+                        Se connecter
+                      </button>
+
+                      <div className="relative py-2">
+                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-200"></span></div>
+                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-gray-400">Ou</span></div>
+                      </div>
+
+                      <button
+                        onClick={() => setGuestMode(true)}
+                        className="w-full py-4 rounded-xl border-2 border-gray-400 font-bold text-gray-700 hover:bg-orange-500 hover:text-white transition"
+                      >
+                        Continuer en tant qu'invité
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  /* === FORMULAIRE INVITÉ (inchangé) === */
-                  <form onSubmit={submitGuest} className="space-y-4">
-                    <input
-                      placeholder="Nom"
-                      className="w-full border rounded-lg px-3 py-2"
-                      value={guest.name}
-                      onChange={(e) =>
-                        setGuest({ ...guest, name: e.target.value })
-                      }
-                    />
-                    <input
-                      placeholder="Email"
-                      className="w-full border rounded-lg px-3 py-2"
-                      value={guest.email}
-                      onChange={(e) =>
-                        setGuest({ ...guest, email: e.target.value })
-                      }
-                    />
-                    <input
-                      placeholder="Téléphone"
-                      className="w-full border rounded-lg px-3 py-2"
-                      value={guest.phone}
-                      onChange={(e) =>
-                        setGuest({ ...guest, phone: e.target.value })
-                      }
-                    />
-                    <textarea
-                      placeholder="Adresse de livraison"
-                      className="w-full border rounded-lg px-3 py-2 min-h-[100px]"
-                      value={guest.deliveryAddress}
-                      onChange={(e) =>
-                        setGuest({
-                          ...guest,
-                          deliveryAddress: e.target.value
-                        })
-                      }
-                    />
+                  /* === FORMULAIRE INVITÉ (DESIGN AMÉLIORÉ) === */
+                  <div className="p-6 md:p-8">
+                    <div className="flex items-center justify-between mb-8">
+                        <h2 className="text-xl font-bold text-gray-800">Infos de livraison</h2>
+                        <button onClick={() => setGuestMode(false)} className="text-xs font-bold text-brand-orange uppercase bg-orange-500 rounded-sm w-[13%] hover:bg-orange-600 hover:text-white">Retour</button>
+                    </div>
 
-                    {err && <p className="text-red-600">{err}</p>}
+                    <form onSubmit={submitGuest} className="space-y-4">
+                      <div className="relative">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          placeholder="Nom complet"
+                          className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green outline-none transition"
+                          value={guest.name}
+                          onChange={(e) => setGuest({ ...guest, name: e.target.value })}
+                          required
+                        />
+                      </div>
 
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="
-                        w-full py-3 rounded-xl
-                        bg-brand-orange text-white
-                        font-bold
-                      "
-                    >
-                      {loading ? "Validation..." : "Confirmer la commande"}
-                    </button>
-                  </form>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type="email"
+                          placeholder="Adresse email (pour le reçu)"
+                          className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green outline-none transition"
+                          value={guest.email}
+                          onChange={(e) => setGuest({ ...guest, email: e.target.value })}
+                          required
+                        />
+                      </div>
+
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type="tel"
+                          placeholder="Téléphone (ex: 0700000000)"
+                          className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green outline-none transition"
+                          value={guest.phone}
+                          onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
+                          required
+                        />
+                      </div>
+
+                      <div className="relative">
+                        <Home className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+                        <textarea
+                          placeholder="Adresse précise de livraison (Ville, Quartier...)"
+                          className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green outline-none transition min-h-[120px]"
+                          value={guest.deliveryAddress}
+                          onChange={(e) => setGuest({ ...guest, deliveryAddress: e.target.value })}
+                          required
+                        />
+                      </div>
+
+                      {err && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{err}</div>}
+
+                      {/* BOUTON PÉTILLANT */}
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="
+                          group relative w-[60%] py-5 mt-4 rounded-2xl overflow-hidden
+                          text-orange-500 bg-gray-800 font-black uppercase tracking-[2px] 
+                          transition-all duration-500 
+                          hover:animate-sparkle-move 
+                          hover:shadow-2xl active:scale-95
+                          hover:text-white
+                          hover:bg-orange-500
+                          disabled:opacity-60 border border-white/20
+                        "
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none" />
+                        <span className="relative z-10">
+                          {loading ? "Validation..." : "Confirmer ma commande"}
+                        </span>
+                      </button>
+                    </form>
+                  </div>
                 )}
               </div>
             )}
+          </div>
         </div>
       </div>
     </DashboardLayout>

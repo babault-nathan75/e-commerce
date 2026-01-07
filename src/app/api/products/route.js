@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import { Product } from "@/models/Product";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import sanitize from 'mongo-sanitize';
 
 const ProductSchema = z.object({
   name: z.string().min(2),
@@ -34,9 +35,10 @@ export async function POST(req) {
   try {
     await connectDB();
     const body = await req.json();
+    const cleanBody = sanitize(body);
 
     // Attention: price peut arriver en string depuis un form => conversion dans l'UI
-    const data = ProductSchema.parse(body);
+    const data = ProductSchema.parse(cleanBody);
 
     const created = await Product.create({
       ...data,

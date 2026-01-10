@@ -1,6 +1,13 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// 1. Configuration du transporteur SMTP
+const transporter = nodemailer.createTransport({
+  service: "gmail", // Ou ton hôte (ex: "smtp.hostinger.com")
+  auth: {
+    user: process.env.EMAIL_USER, // Ton adresse email
+    pass: process.env.EMAIL_PASS, // Ton "Mot de passe d'application" (16 caractères)
+  },
+});
 
 /* ===============================
     TEXTE DE COMMANDE (Version HTML)
@@ -23,11 +30,9 @@ export function buildOrderHTML(order) {
         <h1 style="margin: 0; font-size: 24px;">Confirmation de Commande</h1>
         <p style="margin: 5px 0 0; opacity: 0.9;">Code : ${order.orderCode}</p>
       </div>
-      
       <div style="padding: 20px;">
         <p>Bonjour <strong>${order.customerName}</strong>,</p>
-        <p>Bonne nouvelle ! Votre commande a été enregistrée avec succès. Voici un récapitulatif :</p>
-        
+        <p>Votre commande a été enregistrée avec succès. Voici un récapitulatif :</p>
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <thead>
             <tr style="background-color: #f8fafc;">
@@ -36,30 +41,20 @@ export function buildOrderHTML(order) {
               <th style="text-align: right; padding: 12px; font-size: 12px; text-transform: uppercase; color: #64748b;">Prix</th>
             </tr>
           </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
+          <tbody>${itemsHtml}</tbody>
         </table>
-
         <div style="text-align: right; font-size: 18px; font-weight: bold; margin-bottom: 20px;">
           Total : <span style="color: #f97316;">${order.totalPrice.toLocaleString()} FCFA</span>
         </div>
-
         <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; font-size: 14px;">
           <strong style="display: block; margin-bottom: 5px;">Adresse de livraison :</strong>
           ${order.deliveryAddress || "Retrait en magasin"}<br/>
           <strong>📞 :</strong> ${order.customerPhone || "-"}
         </div>
-
-        <p style="font-size: 12px; color: #94a3b8; margin-top: 30px; text-align: center;">
-          Vous trouverez votre facture officielle en pièce jointe de cet email.
-        </p>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
-// On garde aussi la version texte pour les clients mail très anciens
 export function buildOrderText(order) {
   return `Commande : ${order.orderCode}\nTotal : ${order.totalPrice} FCFA\nLivraison : ${order.deliveryAddress}`;
 }
@@ -71,27 +66,36 @@ export async function sendOrderEmail({
   to,
   bcc,
   subject,
-  html, // ✅ On reçoit maintenant du HTML
+  html,
   text,
   pdfBuffer,
   filename = "facture.pdf"
 }) {
-  const attachments = [];
+  try {
+    const mailOptions = {
+      from: `"Ma Boutique" <${process.env.EMAIL_USER}>`,
+      to,
+      bcc,
+      subject,
+      text,
+      html,
+      attachments: []
+    };
 
-  if (pdfBuffer && Buffer.isBuffer(pdfBuffer)) {
-    attachments.push({
-      filename,
-      content: pdfBuffer, // Resend accepte directement le Buffer avec son SDK
-    });
+    // Nodemailer gère les Buffers directement dans la propriété 'content'
+    if (pdfBuffer) {
+      mailOptions.attachments.push({
+        filename: filename,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      });
+    }
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ [Nodemailer] Email envoyé :", info.messageId);
+    return info;
+  } catch (error) {
+    console.error("❌ [Nodemailer Error] :", error);
+    throw error;
   }
-
-  return resend.emails.send({
-    from: "Ma Boutique <onboarding@resend.dev>", // Change par ton domaine vérifié plus tard
-    to,
-    bcc,
-    subject,
-    text, // Version de secours
-    html, // Version riche
-    attachments
-  });
 }

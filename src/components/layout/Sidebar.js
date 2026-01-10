@@ -11,7 +11,8 @@ import {
   Shield,
   LogIn,
   UserPlus,
-  LogOut
+  LogOut,
+  Search // ✅ Ajout de l'icône de recherche
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -22,11 +23,11 @@ export default function Sidebar() {
 
   const item = (path) =>
     `flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition
-     ${
-       pathname.startsWith(path)
-         ? "bg-brand-green text-orange-500"
-         : "text-gray-700 hover:bg-orange-100 hover:text-brand-orange"
-     }`;
+      ${
+        pathname.startsWith(path)
+          ? "bg-brand-green text-orange-500"
+          : "text-gray-700 hover:bg-orange-100 hover:text-brand-orange"
+      }`;
 
   return (
     <aside className="w-64 min-h-screen border-r bg-white px-3 py-6">
@@ -48,11 +49,19 @@ export default function Sidebar() {
           Favoris
         </Link>
 
-        {/* UTILISATEUR CONNECTÉ */}
+        {/* UTILISATEUR CONNECTÉ : VOIR SES COMMANDES */}
         {session?.user && (
           <Link href="/orders" className={item("/orders")}>
             <Package className="w-5 h-5" />
-            Commandes
+            Mes Commandes
+          </Link>
+        )}
+
+        {/* 🆕 INVITÉ : RECHERCHER UNE COMMANDE */}
+        {!session && (
+          <Link href="/order/track" className={item("/order/track")}>
+            <Search className="w-5 h-5" />
+            Suivre une commande
           </Link>
         )}
 
@@ -80,7 +89,7 @@ export default function Sidebar() {
             </Link>
           </>
         ) : (
-          /* BOUTON DÉCONNEXION CORRIGÉ */
+          /* BOUTON DÉCONNEXION */
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
             className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium

@@ -1,6 +1,7 @@
 import "./globals.css";
 import Providers from "./providers";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
@@ -19,6 +20,7 @@ export default async function RootLayout({ children }) {
               {children}
             </main>
           </div>
+          <Footer />
         </Providers>
       </body>
     </html>

@@ -37,6 +37,7 @@ export default function CheckoutPage() {
   const [guestMode, setGuestMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false); // ✅ État pour les CGV
 
   const [guest, setGuest] = useState({
     name: "",
@@ -60,6 +61,10 @@ export default function CheckoutPage() {
 
   async function submitGuest(e) {
     e.preventDefault();
+    if (!acceptTerms) { // ✅ Validation CGV
+        setErr("Veuillez accepter les conditions générales de vente.");
+        return;
+    }
     setErr("");
     setLoading(true);
 
@@ -90,18 +95,20 @@ export default function CheckoutPage() {
 
   async function submitAccount(e) {
     e.preventDefault();
+    if (!acceptTerms) { // ✅ Validation CGV
+        setErr("Veuillez accepter les conditions générales de vente.");
+        return;
+    }
     setErr("");
     setLoading(true);
 
     try {
-      // Pour les comptes connectés, on utilise les infos de base
-      // On pourrait aussi ajouter un formulaire d'adresse ici
       const payload = {
         items: items.map((i) => ({
           productId: i.productId,
           quantity: i.quantity
         })),
-        deliveryAddress: "Adresse enregistrée", // À dynamiser si besoin
+        deliveryAddress: "Adresse enregistrée", 
         contactPhone: session.user.phone || "Non renseigné"
       };
 
@@ -114,6 +121,25 @@ export default function CheckoutPage() {
       setLoading(false);
     }
   }
+
+  // Composant réutilisable pour la checkbox CGV
+  const TermsCheckbox = () => (
+    <div className="flex items-start gap-3 my-6 p-4 bg-gray-50 rounded-xl border border-gray-100 transition-all">
+      <input 
+        type="checkbox" 
+        id="terms" 
+        checked={acceptTerms}
+        onChange={(e) => setAcceptTerms(e.target.checked)}
+        className="mt-1 h-5 w-5 rounded border-gray-300 text-brand-green focus:ring-brand-green cursor-pointer"
+      />
+      <label htmlFor="terms" className="text-sm text-gray-600 leading-tight cursor-pointer">
+        J'ai lu et j'accepte les{" "}
+        <Link href="/terms" target="_blank" className="text-brand-green underline font-bold hover:text-green-700">
+          Conditions Générales de Vente
+        </Link>
+      </label>
+    </div>
+  );
 
   if (status === "loading") return (
     <div className="min-h-screen flex items-center justify-center">
@@ -151,29 +177,27 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* LOGIQUE D'AFFICHAGE */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
             
             {isLoggedIn ? (
-              /* ================= MODE CONNECTÉ ================= */
               <div className="p-8 text-center">
                 <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2 text-brand-green">
-                  Prêt à commander ?
-                </h2>
-                <p className="text-gray-500 mb-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Prêt à commander ?</h2>
+                <p className="text-gray-500 mb-4">
                   Votre commande sera associée à : <br/>
                   <span className="font-bold text-gray-700">{session.user.email}</span>
                 </p>
+
+                <TermsCheckbox /> {/* ✅ Checkbox pour Connecté */}
 
                 {err && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{err}</div>}
 
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={submitAccount}
-                    disabled={loading}
+                    disabled={loading || !acceptTerms}
                     className="w-full py-4 rounded-xl bg-brand-green text-white font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
                   >
                     {loading ? "Traitement..." : "Confirmer ma commande"}
@@ -185,7 +209,6 @@ export default function CheckoutPage() {
               </div>
 
             ) : (
-              /* ================= MODE NON CONNECTÉ ================= */
               <div className="p-1">
                 {!guestMode ? (
                   <div className="p-8 space-y-6 text-center">
@@ -193,35 +216,31 @@ export default function CheckoutPage() {
                       <h2 className="text-xl font-bold text-gray-800">Comment souhaitez-vous continuer ?</h2>
                       <p className="text-sm text-gray-500">Connectez-vous pour suivre vos commandes plus facilement.</p>
                     </div>
-
                     <div className="grid gap-4">
                       <button
                         onClick={() => router.push("/login?redirect=/checkout")}
-                        className="w-full border-2 border-gray-400 py-4 rounded-xl bg-brand-green text-gray-800 font-bold flex items-center justify-center gap-3 hover:bg-green-700 hover:text-white transition shadow-md"
+                        className="w-full border-2 border-gray-200 py-4 rounded-xl bg-white text-gray-800 font-bold flex items-center justify-center gap-3 hover:bg-gray-50 transition shadow-sm"
                       >
                         <LogIn className="w-5 h-5" />
                         Se connecter
                       </button>
-
                       <div className="relative py-2">
                         <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-200"></span></div>
                         <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-gray-400">Ou</span></div>
                       </div>
-
                       <button
                         onClick={() => setGuestMode(true)}
-                        className="w-full py-4 rounded-xl border-2 border-gray-400 font-bold text-gray-700 hover:bg-orange-500 hover:text-white transition"
+                        className="w-full py-4 rounded-xl border-2 border-gray-400 font-bold text-gray-700 hover:bg-gray-50 transition"
                       >
                         Continuer en tant qu'invité
                       </button>
                     </div>
                   </div>
                 ) : (
-                  /* === FORMULAIRE INVITÉ (DESIGN AMÉLIORÉ) === */
                   <div className="p-6 md:p-8">
                     <div className="flex items-center justify-between mb-8">
                         <h2 className="text-xl font-bold text-gray-800">Infos de livraison</h2>
-                        <button onClick={() => setGuestMode(false)} className="text-xs font-bold text-brand-orange uppercase bg-orange-500 rounded-sm w-[13%] hover:bg-orange-600 hover:text-white">Retour</button>
+                        <button onClick={() => setGuestMode(false)} className="text-xs font-bold text-orange-600 uppercase hover:underline">Retour</button>
                     </div>
 
                     <form onSubmit={submitGuest} className="space-y-4">
@@ -235,63 +254,49 @@ export default function CheckoutPage() {
                           required
                         />
                       </div>
-
                       <div className="relative">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
                           type="email"
-                          placeholder="Adresse email (pour le reçu)"
+                          placeholder="Adresse email"
                           className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green outline-none transition"
                           value={guest.email}
                           onChange={(e) => setGuest({ ...guest, email: e.target.value })}
                           required
                         />
                       </div>
-
                       <div className="relative">
                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
                           type="tel"
-                          placeholder="Téléphone (ex: 0700000000)"
+                          placeholder="Téléphone"
                           className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green outline-none transition"
                           value={guest.phone}
                           onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
                           required
                         />
                       </div>
-
                       <div className="relative">
                         <Home className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                         <textarea
-                          placeholder="Adresse précise de livraison (Ville, Quartier...)"
-                          className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green outline-none transition min-h-[120px]"
+                          placeholder="Adresse précise de livraison"
+                          className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green outline-none transition min-h-[100px]"
                           value={guest.deliveryAddress}
                           onChange={(e) => setGuest({ ...guest, deliveryAddress: e.target.value })}
                           required
                         />
                       </div>
 
+                      <TermsCheckbox /> {/* ✅ Checkbox pour Invité */}
+
                       {err && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{err}</div>}
 
-                      {/* BOUTON PÉTILLANT */}
                       <button
                         type="submit"
-                        disabled={loading}
-                        className="
-                          group relative w-[60%] py-5 mt-4 rounded-2xl overflow-hidden
-                          text-orange-500 bg-gray-800 font-black uppercase tracking-[2px] 
-                          transition-all duration-500 
-                          hover:animate-sparkle-move 
-                          hover:shadow-2xl active:scale-95
-                          hover:text-white
-                          hover:bg-orange-500
-                          disabled:opacity-60 border border-white/20
-                        "
+                        disabled={loading || !acceptTerms}
+                        className="w-full py-5 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 shadow-lg"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none" />
-                        <span className="relative z-10">
-                          {loading ? "Validation..." : "Confirmer ma commande"}
-                        </span>
+                        {loading ? "Validation..." : "Confirmer ma commande"}
                       </button>
                     </form>
                   </div>

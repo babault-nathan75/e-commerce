@@ -159,7 +159,6 @@ export default function EditProductPage({ params }) {
         <Trash2 className="w-4 h-4" /> Supprimer le produit
       </button>
 
-
       <form className="grid grid-cols-1 md:grid-cols-2 gap-8" onSubmit={onSubmit}>
         
         {/* COLONNE GAUCHE */}

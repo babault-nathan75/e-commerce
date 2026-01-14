@@ -36,6 +36,19 @@ export async function POST(req, { params }) {
       await product.save();
     }
   }
+  if (order.status === "EFFECTUER") {
+  for (const item of order.items) {
+    await Product.findByIdAndUpdate(
+      item.productId,
+      { $inc: { stockAvailable: item.quantity } }
+    );
+  }
+
+  order.status = "ANNULEE";
+  order.canceledAt = new Date();
+  await order.save();
+}
+
 
   order.status = "ANNULEE";
   order.canceledAt = new Date();

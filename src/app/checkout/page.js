@@ -49,11 +49,15 @@ export default function CheckoutPage() {
   const isLoggedIn = !!session?.user;
 
   async function createOrder(payload) {
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+      const res = await fetch("/api/orders", {
+    method: "POST",
+    credentials: "include", // 🔥 ICI EXACTEMENT
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Commande échouée");
     return data;

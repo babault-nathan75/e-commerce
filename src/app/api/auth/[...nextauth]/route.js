@@ -5,19 +5,29 @@ import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 
 export const authOptions = {
+  // 🔐 OBLIGATOIRE
+  secret: process.env.NEXTAUTH_SECRET,
+
+  session: {
+    strategy: "jwt",
+    maxAge: 2 * 60 * 60 // 2 heures
+  },
+
   cookies: {
     sessionToken: {
-      name: `__Secure-next-auth.session-token`,
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-next-auth.session-token"
+          : "next-auth.session-token",
       options: {
-        httpOnly: true, // Empêche l'accès via JavaScript (XSS)
-        sameSite: 'lax', // Protège contre le CSRF
-        path: '/',
-        secure: true // Uniquement via HTTPS
-      },
-    },
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production"
+      }
+    }
   },
-  session: { strategy: "jwt" },
-  maxAge: 1 * 24 * 60 * 60, // 1 jour au lieu de 30
+
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -34,6 +44,7 @@ export const authOptions = {
         const user = await User.findOne({ email });
         if (!user) return null;
 
+        // ⚠️ Vérifie bien que le champ existe en DB
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) return null;
 
@@ -46,29 +57,25 @@ export const authOptions = {
       }
     })
   ],
+
   callbacks: {
-  async jwt({ token, user, trigger, session }) {
-    // Lors de la connexion initiale
-    if (user) {
-      token.isAdmin = !!user.isAdmin;
-      token.id = user.id || user._id; // On s'assure d'avoir l'ID
-      
-      // OPTIONNEL : Si tu veux stocker l'User-Agent pour le middleware
-      // Note: Dans certaines versions de NextAuth, req n'est pas direct, 
-      // on peut passer par un hack ou simplement se fier à la rotation des tokens.
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.isAdmin = !!user.isAdmin;
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.isAdmin = token.isAdmin;
+      }
+      return session;
     }
-    return token;
   },
-  
-  async session({ session, token }) {
-    // On injecte les données du token dans la session client
-    if (token) {
-      session.user.id = token.id || token.sub;
-      session.user.isAdmin = !!token.isAdmin;
-    }
-    return session;
-  }
-},
+
   pages: {
     signIn: "/login"
   }

@@ -22,11 +22,15 @@ export default function CancelOrderBox({ orderId, canCancel }) {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/orders/${orderId}/cancel`, {
+      const res = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cancelReason: r })
+        credentials: "include", // 🔥 ICI EXACTEMENT
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
+
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Annulation échouée");

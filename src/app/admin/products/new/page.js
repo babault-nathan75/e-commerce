@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Image as ImageIcon, ArrowLeft, Package } from "lucide-react";
-import { createProductAction } from "../actions"; // 👈 Import de l'action serveur
+import { createProductAction } from "../actions";
 
 const CATEGORIES_MAP = {
   shop: ["Électronique", "Mode", "Maison", "Beauté", "Informatique"],
@@ -16,7 +16,7 @@ export default function NewProductPage() {
   const [form, setForm] = useState({
     name: "",
     price: "",
-    stock: 0,
+    stock: 0,               // ✅ stock numérique réel
     description: "",
     channel: "shop",
     category: "Électronique",
@@ -28,9 +28,9 @@ export default function NewProductPage() {
   const [err, setErr] = useState("");
 
   const handleChannelChange = (val) => {
-    setForm({ 
-      ...form, 
-      channel: val, 
+    setForm({
+      ...form,
+      channel: val,
       category: CATEGORIES_MAP[val][0],
       productType: val === "library" ? "digital" : "physical"
     });
@@ -39,10 +39,15 @@ export default function NewProductPage() {
   async function uploadImage() {
     const fd = new FormData();
     fd.append("file", file);
-    // On garde fetch ici car c'est un transfert de fichier binaire
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: fd
+    });
+
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Upload échoué");
+
     return data.url;
   }
 
@@ -53,19 +58,36 @@ export default function NewProductPage() {
 
     try {
       if (!file) throw new Error("Image obligatoire");
+
       const imageUrl = await uploadImage();
 
+      // 🔐 PAYLOAD STRICT (PAS DE SPREAD À L’AVEUGLE)
       const payload = {
-        ...form,
-        imageUrl,
-        category: [form.category]
+        name: form.name.trim(),
+        price: Number(form.price),
+        stock: Number(form.stock),          // ✅ stock réel
+        description: form.description.trim(),
+        channel: form.channel,
+        productType: form.productType,
+        category: [form.category],
+        imageUrl
       };
 
-      // ✅ APPEL DE L'ACTION SERVEUR (Pas de fetch vers /api/products)
+      if (payload.price < 0) {
+        throw new Error("Le prix doit être positif");
+      }
+
+      if (payload.stock < 0) {
+        throw new Error("Le stock ne peut pas être négatif");
+      }
+
       const result = await createProductAction(payload);
 
-      if (result.success) {
+      if (result?.success) {
         router.push("/admin/products");
+        router.refresh();
+      } else {
+        throw new Error("Création échouée");
       }
     } catch (e2) {
       setErr(e2.message || "Erreur lors de la création");
@@ -76,48 +98,68 @@ export default function NewProductPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8">
-      <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-500 mb-4 hover:text-black transition">
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-2 text-gray-500 mb-4 hover:text-black transition"
+      >
         <ArrowLeft className="w-4 h-4" /> Retour
       </button>
 
-      <h1 className="text-3xl font-black text-gray-800 mb-8">Ajouter un article</h1>
+      <h1 className="text-3xl font-black text-gray-800 mb-8">
+        Ajouter un article
+      </h1>
 
-      <form className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm" onSubmit={onSubmit}>
-        
+      <form
+        className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm"
+        onSubmit={onSubmit}
+      >
+        {/* COLONNE GAUCHE */}
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Nom du produit</label>
+            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+              Nom du produit
+            </label>
             <input
               required
               className="w-full border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-green outline-none border transition"
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="ex: MacBook Pro 14"
+              onChange={(e) =>
+                setForm({ ...form, name: e.target.value })
+              }
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Prix (FCFA)</label>
+              <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+                Prix (FCFA)
+              </label>
               <input
                 required
                 type="number"
+                min="0"
                 className="w-full border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-green outline-none border transition"
                 value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, price: e.target.value })
+                }
               />
             </div>
-            
+
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Stock</label>
+              <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+                Stock
+              </label>
               <div className="relative">
                 <input
                   required
                   type="number"
                   min="0"
-                  className="w-full border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-green outline-none border transition pr-10"
+                  className="w-full border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-green outline-none border transition pr-10 font-mono font-bold"
                   value={form.stock}
-                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, stock: e.target.value })
+                  }
                 />
                 <Package className="absolute right-3 top-3 text-gray-400 w-5 h-5 pointer-events-none" />
               </div>
@@ -125,20 +167,27 @@ export default function NewProductPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Description</label>
+            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+              Description
+            </label>
             <textarea
               required
               className="w-full border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-green outline-none border transition min-h-32"
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
             />
           </div>
         </div>
 
+        {/* COLONNE DROITE */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Canal</label>
+              <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+                Canal
+              </label>
               <select
                 className="w-full border-gray-200 rounded-xl px-4 py-3 bg-gray-50 font-bold text-sm outline-none"
                 value={form.channel}
@@ -150,11 +199,15 @@ export default function NewProductPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Type</label>
+              <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+                Type
+              </label>
               <select
                 className="w-full border-gray-200 rounded-xl px-4 py-3 bg-gray-50 font-bold text-sm outline-none"
                 value={form.productType}
-                onChange={(e) => setForm({ ...form, productType: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, productType: e.target.value })
+                }
               >
                 <option value="physical">Physique</option>
                 <option value="digital">Digital / PDF</option>
@@ -163,36 +216,53 @@ export default function NewProductPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Catégorie</label>
+            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+              Catégorie
+            </label>
             <select
               className="w-full border-gray-200 rounded-xl px-4 py-3 bg-white border-2 border-brand-green/20 font-medium outline-none"
               value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, category: e.target.value })
+              }
             >
               {CATEGORIES_MAP[form.channel].map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="pt-2">
-            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Image du produit</label>
+            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+              Image du produit
+            </label>
             <div className="relative group border-2 border-dashed border-gray-200 rounded-2xl p-4 flex flex-col items-center justify-center hover:border-brand-green transition bg-gray-50">
               <input
                 type="file"
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 accept="image/*"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                onChange={(e) =>
+                  setFile(e.target.files?.[0] || null)
+                }
               />
               <ImageIcon className="w-8 h-8 text-gray-300 mb-2 group-hover:text-brand-green" />
-              <span className="text-xs text-gray-500">{file ? file.name : "Cliquez pour uploader"}</span>
+              <span className="text-xs text-gray-500">
+                {file ? file.name : "Cliquez pour uploader"}
+              </span>
             </div>
           </div>
         </div>
 
+        {/* ACTIONS */}
         <div className="md:col-span-2 pt-4">
-          {err && <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm mb-4 border border-red-100">{err}</div>}
-          
+          {err && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm mb-4 border border-red-100">
+              {err}
+            </div>
+          )}
+
           <button
             className="w-full bg-brand-orange hover:bg-orange-600 hover:text-white text-orange-500 border border-orange-500 py-4 rounded-2xl font-black text-lg shadow-xl shadow-orange-100 transition-all disabled:opacity-50"
             disabled={loading}

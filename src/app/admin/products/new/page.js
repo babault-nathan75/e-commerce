@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Store, BookOpen, Image as ImageIcon, ArrowLeft } from "lucide-react";
+import { Image as ImageIcon, ArrowLeft, Package } from "lucide-react";
+import { createProductAction } from "../actions"; // 👈 Import de l'action serveur
 
-// Configuration des catégories par canal
 const CATEGORIES_MAP = {
   shop: ["Électronique", "Mode", "Maison", "Beauté", "Informatique"],
   library: ["Développement Personnel", "Business", "Scolaire", "Romans", "PDF"]
@@ -16,9 +16,10 @@ export default function NewProductPage() {
   const [form, setForm] = useState({
     name: "",
     price: "",
+    stock: 0,
     description: "",
     channel: "shop",
-    category: "Électronique", // Valeur par défaut initiale
+    category: "Électronique",
     productType: "physical"
   });
 
@@ -26,19 +27,19 @@ export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  // Mise à jour du canal et reset de la catégorie correspondante
   const handleChannelChange = (val) => {
     setForm({ 
       ...form, 
       channel: val, 
-      category: CATEGORIES_MAP[val][0], // Prend la 1ère catégorie de la nouvelle liste
-      productType: val === "library" ? "digital" : "physical" // Préréglage logique
+      category: CATEGORIES_MAP[val][0],
+      productType: val === "library" ? "digital" : "physical"
     });
   };
 
   async function uploadImage() {
     const fd = new FormData();
     fd.append("file", file);
+    // On garde fetch ici car c'est un transfert de fichier binaire
     const res = await fetch("/api/upload", { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Upload échoué");
@@ -56,21 +57,18 @@ export default function NewProductPage() {
 
       const payload = {
         ...form,
-        price: Number(form.price),
         imageUrl,
-        category: [form.category] // On l'envoie sous forme de tableau comme prévu dans ton modèle
+        category: [form.category]
       };
 
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+      // ✅ APPEL DE L'ACTION SERVEUR (Pas de fetch vers /api/products)
+      const result = await createProductAction(payload);
 
-      if (!res.ok) throw new Error("Création échouée");
-      router.push("/admin/products");
+      if (result.success) {
+        router.push("/admin/products");
+      }
     } catch (e2) {
-      setErr(e2.message || "Erreur");
+      setErr(e2.message || "Erreur lors de la création");
     } finally {
       setLoading(false);
     }
@@ -86,7 +84,6 @@ export default function NewProductPage() {
 
       <form className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm" onSubmit={onSubmit}>
         
-        {/* SECTION INFOS DE BASE */}
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Nom du produit</label>
@@ -99,15 +96,32 @@ export default function NewProductPage() {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Prix (FCFA)</label>
-            <input
-              required
-              type="number"
-              className="w-full border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-green outline-none border transition"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Prix (FCFA)</label>
+              <input
+                required
+                type="number"
+                className="w-full border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-green outline-none border transition"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Stock</label>
+              <div className="relative">
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  className="w-full border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-green outline-none border transition pr-10"
+                  value={form.stock}
+                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                />
+                <Package className="absolute right-3 top-3 text-gray-400 w-5 h-5 pointer-events-none" />
+              </div>
+            </div>
           </div>
 
           <div>
@@ -121,13 +135,12 @@ export default function NewProductPage() {
           </div>
         </div>
 
-        {/* SECTION CLASSIFICATION */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Canal</label>
               <select
-                className="w-full border-gray-200 rounded-xl px-4 py-3 bg-gray-50 font-bold text-sm"
+                className="w-full border-gray-200 rounded-xl px-4 py-3 bg-gray-50 font-bold text-sm outline-none"
                 value={form.channel}
                 onChange={(e) => handleChannelChange(e.target.value)}
               >
@@ -139,7 +152,7 @@ export default function NewProductPage() {
             <div>
               <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Type</label>
               <select
-                className="w-full border-gray-200 rounded-xl px-4 py-3 bg-gray-50 font-bold text-sm"
+                className="w-full border-gray-200 rounded-xl px-4 py-3 bg-gray-50 font-bold text-sm outline-none"
                 value={form.productType}
                 onChange={(e) => setForm({ ...form, productType: e.target.value })}
               >
@@ -152,7 +165,7 @@ export default function NewProductPage() {
           <div>
             <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Catégorie</label>
             <select
-              className="w-full border-gray-200 rounded-xl px-4 py-3 bg-white border-2 border-brand-green/20 font-medium"
+              className="w-full border-gray-200 rounded-xl px-4 py-3 bg-white border-2 border-brand-green/20 font-medium outline-none"
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             >

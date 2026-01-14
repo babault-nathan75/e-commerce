@@ -70,7 +70,7 @@ export default function AdminHome() {
             <div className="relative">
               <button 
                 onClick={() => { setShowShopMenu(!showShopMenu); setShowLibMenu(false); }}
-                className={`flex items-center gap-2 p-3 rounded-xl transition-all ${showShopMenu ? 'bg-brand-green text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                className={`flex items-center gap-2 p-3 rounded-xl transition-all ${showShopMenu ? 'bg-white text-gray-700 hover:bg-gray-50' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
               >
                 <Store className="w-5 h-5" />
                 <span className="text-sm font-bold hidden md:block">Boutique</span>

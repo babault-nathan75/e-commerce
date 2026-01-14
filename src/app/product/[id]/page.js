@@ -1,18 +1,16 @@
 import { connectDB } from "@/lib/db";
 import { Product } from "@/models/Product";
-// IMPORTATION DU MODÈLE REVIEW
 import { Review } from "@/models/Review"; 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import AddToCartButton from "./ui/AddToCartButton";
 import FavoriteButton from "./ui/FavoriteButton";
 import ReviewsBox from "./ui/ReviewsBox";
 import StarRating from "@/components/ui/StarRating";
+import { Box, AlertTriangle, CheckCircle2 } from "lucide-react"; // Importation d'icônes pour le stock
 
-// 1. CORRECTION : Accès direct à la BDD au lieu du fetch
 async function getReviews(productId) {
   try {
     await connectDB();
-    // On cherche les avis liés à ce produit dans la collection MongoDB
     const reviews = await Review.find({ productId }).sort({ createdAt: -1 }).lean();
     return reviews || [];
   } catch (error) {
@@ -37,20 +35,21 @@ export default async function ProductDetailsPage({ params }) {
     );
   }
 
-  // Appel de la fonction qui tape directement en BDD
   const reviews = await getReviews(id);
-  
-  const avg =
-    reviews.length > 0
+  const avg = reviews.length > 0
       ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
       : 0;
+
+  // --- LOGIQUE DE STOCK ---
+  const stockQty = p.stock || 0;
+  const isOutOfStock = stockQty <= 0;
+  const isLowStock = stockQty > 0 && stockQty <= 5;
 
   return (
     <DashboardLayout>
       <div className="min-h-screen bg-gradient-to-b from-white to-yellow-50 px-6 py-10">
         <div className="max-w-7xl mx-auto">
 
-          {/* ===== PRODUIT ===== */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             {/* IMAGE */}
             <div className="bg-white rounded-2xl border shadow-sm p-6 flex justify-center">
@@ -58,7 +57,7 @@ export default async function ProductDetailsPage({ params }) {
                 <img
                   src={p.imageUrl}
                   alt={p.name}
-                  className="max-h-full max-w-full object-contain"
+                  className={`max-h-full max-w-full object-contain ${isOutOfStock ? 'grayscale opacity-50' : ''}`}
                 />
               </div>
             </div>
@@ -69,7 +68,6 @@ export default async function ProductDetailsPage({ params }) {
                 {p.name}
               </h1>
 
-              {/* ⭐ NOTATION */}
               <StarRating
                 value={avg}
                 count={reviews.length}
@@ -77,11 +75,24 @@ export default async function ProductDetailsPage({ params }) {
               />
 
               <div className="text-3xl font-extrabold text-brand-orange">
-                {p.price} FCFA
+                {p.price.toLocaleString()} FCFA
               </div>
 
-              <div className="text-green-600 font-semibold text-sm">
-                ✔ En stock
+              {/* ✅ AFFICHAGE DU STOCK DYNAMIQUE */}
+              <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border font-bold text-sm ${
+                isOutOfStock 
+                  ? "bg-red-50 text-red-600 border-red-100" 
+                  : isLowStock 
+                    ? "bg-orange-50 text-orange-600 border-orange-100 animate-pulse" 
+                    : "bg-emerald-50 text-emerald-600 border-emerald-100"
+              }`}>
+                {isOutOfStock ? (
+                  <><AlertTriangle size={16} /> Épuisé</>
+                ) : isLowStock ? (
+                  <><Box size={16} /> Stock critique : {stockQty} restant(s)</>
+                ) : (
+                  <><CheckCircle2 size={16} /> En stock : {stockQty} articles disponibles</>
+                )}
               </div>
 
               <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
@@ -90,12 +101,15 @@ export default async function ProductDetailsPage({ params }) {
 
               {/* ACTIONS */}
               <div className="flex items-center gap-4">
+                {/* On peut passer la quantité au bouton pour limiter l'ajout au panier */}
                 <AddToCartButton
+                  disabled={isOutOfStock}
                   product={{
                     productId: p._id.toString(),
                     name: p.name,
                     price: p.price,
-                    imageUrl: p.imageUrl
+                    imageUrl: p.imageUrl,
+                    stock: stockQty // Optionnel : pour gérer la limite dans le panier
                   }}
                 />
               </div>
@@ -106,13 +120,11 @@ export default async function ProductDetailsPage({ params }) {
             </div>
           </div>
 
-          {/* ===== AVIS ===== */}
+          {/* AVIS */}
           <div className="mt-14">
             <h2 className="text-2xl font-bold mb-4">
-              Avis des clients
+              Avis des clients ({reviews.length})
             </h2>
-            {/* On peut passer les reviews directement si ReviewsBox est un Server Component, 
-                sinon on laisse ReviewsBox gérer sa propre logique client si nécessaire */}
             <ReviewsBox productId={p._id.toString()} initialReviews={JSON.parse(JSON.stringify(reviews))} />
           </div>
 

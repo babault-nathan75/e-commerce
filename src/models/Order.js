@@ -30,10 +30,16 @@ const OrderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["EFFECTUER", "EN_COURS_DE_LIVRAISON", "LIVRER"],
+      enum: [
+        "EFFECTUER",
+        "EN_COURS_DE_LIVRAISON",
+        "LIVRER",
+        "ANNULEE"
+      ],
       default: "EFFECTUER",
       index: true
     },
+
 
     cancelReason: { type: String, default: null },
     canceledAt: { type: Date, default: null },

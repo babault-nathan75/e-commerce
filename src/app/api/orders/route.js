@@ -93,6 +93,21 @@ export async function POST(req) {
     const orderCode = generateOrderCode();
     
     /* 💾 Création de la commande */
+
+    /* 🔻 DÉCRÉMENTATION DU STOCK */
+    for (const item of items) {
+      const product = map.get(item.productId.toString());
+
+      if (product.isLimited) {
+        if (product.stockAvailable < item.quantity) {
+          throw new Error(`Stock insuffisant pour ${product.name}`);
+        }
+
+        product.stockAvailable -= item.quantity;
+        await product.save();
+      }
+    }
+
     const order = await Order.create({
       orderCode,
       items,

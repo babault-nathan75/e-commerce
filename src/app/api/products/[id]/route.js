@@ -14,32 +14,73 @@ const UpdateSchema = z.object({
   description: z.string().min(5).optional(),
   channel: z.enum(["shop", "library"]).optional(),
   productType: z.enum(["physical", "digital"]).optional(),
-  category: z.array(z.string()).optional()
+  category: z.array(z.string()).optional(),
+  stock: z.number().min(0).optional() // ✅ AJOUT CRUCIAL
 });
 
-export async function GET(_req, { params }) {
+
+
+export async function GET(_req, context) {
   await connectDB();
-  const { id } = await params;
+
+  const { id } = await context.params; // ✅ OBLIGATOIRE (Next 15+)
+
   const product = await Product.findById(id);
-  if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!product) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   return NextResponse.json({ ok: true, product });
 }
 
-export async function PUT(req, { params }) {
-  const { id } = await params;
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  await connectDB();
-  const body = await req.json();
-  const cleanBody = sanitize(body);
-  const data = UpdateSchema.parse(cleanBody);
 
-  const updated = await Product.findByIdAndUpdate(id, data, { new: true });
-  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+export async function PUT(req, context) {
+  try {
+    const { id } = await context.params; // ✅ ICI AUSSI
 
-  return NextResponse.json({ ok: true, product: updated });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await connectDB();
+
+    const body = sanitize(await req.json());
+    const data = UpdateSchema.parse(body);
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // 🔥 GESTION INTELLIGENTE DU STOCK
+    if (typeof data.stock === "number") {
+      const diff = data.stock - product.stockAvailable;
+      product.stockAvailable += diff;
+      delete data.stock;
+    }
+
+    Object.assign(product, data);
+    await product.save();
+
+    return NextResponse.json({ ok: true, product });
+
+  } catch (err) {
+    console.error("PUT PRODUCT ERROR:", err);
+
+    return NextResponse.json(
+      {
+        error: "Invalid request",
+        details: err?.errors || err?.message
+      },
+      { status: 400 }
+    );
+  }
 }
+
+
+
 
 export async function DELETE(_req, { params }) {
   const { id } = await params;

@@ -6,14 +6,16 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import sanitize from 'mongo-sanitize';
 
+// 1. Mise à jour du schéma de validation pour inclure le STOCK
 const ProductSchema = z.object({
   name: z.string().min(2),
   price: z.number().min(0),
+  stock: z.number().min(0).default(0), // 👈 Ajouté ici
   imageUrl: z.string().min(2),
   description: z.string().min(5),
   channel: z.enum(["shop", "library"]),
-  productType: z.enum(["physical", "digital"]).optional(),
-  category: z.array(z.string()).optional()
+  productType: z.enum(["physical", "digital"]).default("physical"),
+  category: z.array(z.string()).optional().default([])
 });
 
 export async function GET(req) {
@@ -30,24 +32,41 @@ export async function GET(req) {
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  
+  // Vérification de sécurité
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json({ error: "Interdit : Accès Admin requis" }, { status: 403 });
+  }
 
   try {
     await connectDB();
     const body = await req.json();
     const cleanBody = sanitize(body);
 
-    // Attention: price peut arriver en string depuis un form => conversion dans l'UI
-    const data = ProductSchema.parse(cleanBody);
+    // 2. Conversion des types avant la validation Zod
+    // Le FormData envoie souvent des strings, on les convertit en nombres
+    const preparedData = {
+      ...cleanBody,
+      price: Number(cleanBody.price),
+      stock: Number(cleanBody.stock) || 0,
+    };
 
-    const created = await Product.create({
-      ...data,
-      productType: data.productType || "physical",
-      category: data.category || []
-    });
+    // 3. Validation avec Zod
+    const validatedData = ProductSchema.parse(preparedData);
 
-    return NextResponse.json({ ok: true, product: created }, { status: 201 });
-    }catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    // 4. Une seule création en base de données
+    const newProduct = await Product.create(validatedData);
+
+    return NextResponse.json(newProduct, { status: 201 });
+
+  } catch (error) {
+    console.error("Erreur API:", error);
+    
+    // Gestion des erreurs de validation Zod
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Données invalides", details: error.errors }, { status: 400 });
+    }
+
+    return NextResponse.json({ error: "Erreur lors de la création de l'article" }, { status: 500 });
   }
 }

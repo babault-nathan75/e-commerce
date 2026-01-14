@@ -11,35 +11,37 @@ const CancelSchema = z.object({
 });
 
 export async function POST(req, { params }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const body = await req.json();
-  const cleanBody = sanitize(body);
-  const data = CancelSchema.parse(cleanBody);
-
+  const { id } = params;
   await connectDB();
-  const order = await Order.findById(params.id);
-  if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const isAdmin = !!session.user.isAdmin;
-  const isOwner = order.userId && order.userId.toString() === session.user.id;
+  const session = await getServerSession(authOptions);
+  const body = sanitize(await req.json().catch(() => ({})));
 
-  if (!isAdmin && !isOwner) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  if (order.status === "LIVRER") {
-    return NextResponse.json({ error: "Impossible d'annuler une commande livrée" }, { status: 400 });
+  const order = await Order.findById(id);
+  if (!order) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   if (order.canceledAt) {
-    return NextResponse.json({ error: "Commande déjà annulée" }, { status: 400 });
+    return NextResponse.json({ error: "Déjà annulée" }, { status: 400 });
   }
 
-  order.cancelReason = data.cancelReason.trim();
+  const canceledBy = session?.user?.isAdmin ? "ADMIN" : "USER";
+
+  /* 🔁 RESTITUTION DU STOCK */
+  for (const item of order.items) {
+    const product = await Product.findById(item.productId);
+    if (product?.isLimited) {
+      product.stockAvailable += item.quantity;
+      await product.save();
+    }
+  }
+
+  order.status = "ANNULEE";
   order.canceledAt = new Date();
-  order.canceledBy = isAdmin ? "ADMIN" : "USER";
+  order.canceledBy = canceledBy;
+  order.cancelReason = body.reason || null;
+
   await order.save();
 
   return NextResponse.json({ ok: true });

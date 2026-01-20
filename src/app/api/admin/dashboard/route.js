@@ -4,7 +4,6 @@ import { User } from "@/models/User";
 import { Order } from "@/models/Order";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import sanitize from 'mongo-sanitize';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -15,104 +14,103 @@ export async function GET() {
   await connectDB();
 
   const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - 7);
+  const startOfWeek = new Date();
+  startOfWeek.setDate(now.getDate() - 6);
+  startOfWeek.setHours(0, 0, 0, 0);
 
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-  /* ---------------- USERS ---------------- */
-  const usersWeek = await User.countDocuments({
-    createdAt: { $gte: startOfWeek }
-  });
+  /* ---------------- 1. STATISTIQUES GLOBALES ---------------- */
+  const [usersWeek, usersMonth, usersYear] = await Promise.all([
+    User.countDocuments({ createdAt: { $gte: startOfWeek } }),
+    User.countDocuments({ createdAt: { $gte: startOfMonth } }),
+    User.countDocuments({ createdAt: { $gte: startOfYear } }),
+  ]);
 
-  const usersMonth = await User.countDocuments({
-    createdAt: { $gte: startOfMonth }
-  });
+  const [ordersDay, ordersWeek, ordersMonth, ordersYear] = await Promise.all([
+    Order.countDocuments({ createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } }),
+    Order.countDocuments({ createdAt: { $gte: startOfWeek } }),
+    Order.countDocuments({ createdAt: { $gte: startOfMonth } }),
+    Order.countDocuments({ createdAt: { $gte: startOfYear } }),
+  ]);
 
-  const usersYear = await User.countDocuments({
-    createdAt: { $gte: startOfYear }
-  });
-
-  /* ---------------- ORDERS ---------------- */
-  const ordersDay = await Order.countDocuments({
-    createdAt: {
-      $gte: new Date(now.setHours(0, 0, 0, 0))
-    }
-  });
-
-  const ordersWeek = await Order.countDocuments({
-    createdAt: { $gte: startOfWeek }
-  });
-
-  const ordersMonth = await Order.countDocuments({
-    createdAt: { $gte: startOfMonth }
-  });
-
-  const ordersYear = await Order.countDocuments({
-    createdAt: { $gte: startOfYear }
-  });
-
-  /* ---------------- REVENUE (LIVRÉES) ---------------- */
   const revenueAgg = await Order.aggregate([
-    {
-      $match: {
-        status: "LIVRER"
-      }
-    },
+    { $match: { status: "LIVRER" } },
+    { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+  ]);
+  const totalRevenue = revenueAgg[0]?.total || 0;
+
+  /* ---------------- 2. CHARTS : LOGIQUE DE REMPLISSAGE (PERFECTION) ---------------- */
+  
+  // Générer les 7 derniers jours pour garantir des données continues
+  const last7Days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(now.getDate() - i);
+    last7Days.push(d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+  }
+
+  // REVENUS & INSCRIPTIONS (7 DERNIERS JOURS)
+  const dailyStats = await Order.aggregate([
+    { $match: { createdAt: { $gte: startOfWeek }, status: "LIVRER" } },
     {
       $group: {
-        _id: null,
-        total: { $sum: "$totalPrice" }
+        _id: { $dateToString: { format: "%d/%m", date: "$createdAt" } },
+        revenue: { $sum: "$totalPrice" },
+        count: { $sum: 1 }
       }
     }
   ]);
 
-  const revenue = revenueAgg[0]?.total || 0;
-
-  /* ---------------- CHARTS ---------------- */
-
-  // Inscriptions par jour (7 derniers jours)
-  const usersChart = await User.aggregate([
-    {
-      $match: { createdAt: { $gte: startOfWeek } }
-    },
+  const usersDaily = await User.aggregate([
+    { $match: { createdAt: { $gte: startOfWeek } } },
     {
       $group: {
-        _id: {
-          $dateToString: { format: "%d/%m", date: "$createdAt" }
-        },
-        value: { $sum: 1 }
+        _id: { $dateToString: { format: "%d/%m", date: "$createdAt" } },
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  // COMMANDES PAR MOIS (ANNÉE EN COURS)
+  const ordersMonthlyAgg = await Order.aggregate([
+    { $match: { createdAt: { $gte: startOfYear } } },
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        count: { $sum: 1 }
       }
     },
     { $sort: { _id: 1 } }
   ]);
 
-  // Commandes par mois (année en cours)
-  const ordersChart = await Order.aggregate([
-    {
-      $match: { createdAt: { $gte: startOfYear } }
-    },
-    {
-      $group: {
-        _id: {
-          $month: "$createdAt"
-        },
-        value: { $sum: 1 }
-      }
-    },
-    { $sort: { _id: 1 } }
-  ]);
+  // Mapping des mois pour la beauté des labels
+  const monthNames = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
+
+  /* ---------------- 3. ASSEMBLAGE FINAL ---------------- */
 
   return NextResponse.json({
     users: { week: usersWeek, month: usersMonth, year: usersYear },
     orders: { day: ordersDay, week: ordersWeek, month: ordersMonth, year: ordersYear },
-    revenue,
+    revenue: totalRevenue,
     charts: {
-      users: usersChart.map((u) => ({ label: u._id, value: u.value })),
-      orders: ordersChart.map((o) => ({
-        label: `M${o._id}`,
-        value: o.value
+      // Inscriptions : Mapping pour boucher les trous avec 0
+      users: last7Days.map(date => ({
+        label: date,
+        value: usersDaily.find(u => u._id === date)?.count || 0
+      })),
+      
+      // Revenus : Nouveau graphique pour la trésorerie
+      revenue: last7Days.map(date => ({
+        label: date,
+        value: dailyStats.find(s => s._id === date)?.revenue || 0
+      })),
+
+      // Commandes : Utilisation des noms de mois
+      orders: ordersMonthlyAgg.map(o => ({
+        label: monthNames[o._id - 1],
+        value: o.count
       }))
     }
   });

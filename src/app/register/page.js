@@ -74,7 +74,12 @@ export default function RegisterPage() {
               Créer un compte
             </h1>
             <p className="mt-2 text-sm text-gray-600">
-              Rejoins <span className="font-semibold text-orange-500">my-ecommerce</span> et
+              Rejoins <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500 dark:from-green-400 dark:to-emerald-300 transition-all group-hover:brightness-110 font-bold">
+                Hebron
+              </span>{" "}
+              <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500 dark:from-orange-400 dark:to-yellow-300 transition-all group-hover:brightness-110">
+                Ivoire Shops
+              </span> et
               profite d’une expérience d’achat premium.
             </p>
           </div>
@@ -119,6 +124,7 @@ export default function RegisterPage() {
                 <input
                   className="w-full pl-10 pr-3 py-2.5 rounded-lg border focus:ring-2 focus:ring-orange-400 focus:outline-none"
                   value={form.phone}
+                  type="number"
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   placeholder="+225 07 00 00 00 00"
                   required

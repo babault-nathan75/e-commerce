@@ -4,58 +4,81 @@ import { persist } from "zustand/middleware";
 export const useCartStore = create(
   persist(
     (set, get) => ({
-      items: [], // { productId, name, price, imageUrl, quantity }
+      // --- ÉTAT INITIAL ---
+      items: [], // Structure: { productId, name, price, imageUrl, quantity }
 
-      // 🔁 Toggle produit (Commander / Retirer)
-      toggleItem: (product) =>
-        set((state) => {
-          const idx = state.items.findIndex(
-            (i) => i.productId === product.productId
-          );
+      // --- LOGIQUE DE COMMANDE (TOGGLE) ---
+      // Utilisé pour l'ajout/retrait rapide depuis les listes
+      toggleItem: (product) => {
+        const { items } = get();
+        const index = items.findIndex((i) => i.productId === product.productId);
 
-          // ➖ Déjà présent → retirer complètement
-          if (idx >= 0) {
-            const items = [...state.items];
-            items.splice(idx, 1);
-            return { items };
-          }
+        if (index >= 0) {
+          // STATUS: RETRAIT DU FLUX
+          const updatedItems = items.filter((i) => i.productId !== product.productId);
+          set({ items: updatedItems });
+        } else {
+          // STATUS: INSCRIPTION DANS L'INVENTAIRE
+          set({ items: [...items, { ...product, quantity: 1 }] });
+        }
+      },
 
-          // ➕ Pas présent → ajouter
-          return {
-            items: [...state.items, { ...product, quantity: 1 }]
-          };
-        }),
+      // --- CALCULATEURS DE DONNÉES (SELECTORS) ---
+      
+      // Retourne le nombre total d'unités pour le badge du header
+      totalItems: () => {
+        return get().items.reduce((sum, item) => sum + item.quantity, 0);
+      },
 
-      // 🔢 Total articles pour badge panier
-      totalItems: () =>
-        get().items.reduce((sum, i) => sum + i.quantity, 0),
+      // Calcule la valeur totale de la session (FCFA)
+      getTotalPrice: () => {
+        return get().items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      },
 
-      // (Optionnel) garder pour autres écrans
+      // Vérifie si un produit est déjà présent (pour le style des boutons)
+      isInCart: (productId) => {
+        return get().items.some((item) => item.productId === productId);
+      },
+
+      // --- CONTRÔLES DE QUANTITÉ ---
+      
       increment: (productId) => {
-        set({
-          items: get().items.map((i) =>
-            i.productId === productId
-              ? { ...i, quantity: i.quantity + 1 }
-              : i
-          )
-        });
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.productId === productId
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          ),
+        }));
       },
 
       decrement: (productId) => {
-        set({
-          items: get()
-            .items
-            .map((i) =>
-              i.productId === productId
-                ? { ...i, quantity: i.quantity - 1 }
-                : i
-            )
-            .filter((i) => i.quantity > 0)
-        });
+        const { items } = get();
+        const product = items.find((i) => i.productId === productId);
+
+        if (product && product.quantity > 1) {
+          set({
+            items: items.map((item) =>
+              item.productId === productId
+                ? { ...item, quantity: item.quantity - 1 }
+                : item
+            ),
+          });
+        } else {
+          // Si la quantité tombe à 0, on purge l'item
+          set({ items: items.filter((item) => item.productId !== productId) });
+        }
       },
 
-      clear: () => set({ items: [] })
+      // --- RÉINITIALISATION ---
+      clear: () => {
+        // ACTION: PURGE COMPLÈTE DU TERMINAL
+        set({ items: [] });
+      },
     }),
-    { name: "my-ecommerce-cart" }
+    { 
+      name: "hebron-terminal-storage", // Nom technique pour le localStorage
+      getStorage: () => localStorage, 
+    }
   )
 );

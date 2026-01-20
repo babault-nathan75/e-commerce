@@ -4,20 +4,20 @@ import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
 
 export const authOptions = {
+  // --- PROTOCOLE DE SESSION TACTIQUE ---
   session: {
     strategy: "jwt",
-    maxAge: 2 * 60 * 60, // ✅ 2 heures (7200s)
+    maxAge: 2 * 60 * 60, // 2 Heures : Délai de sécurité avant expiration
   },
 
   cookies: {
     sessionToken: {
-      name:
-        process.env.NODE_ENV === "production"
-          ? "__Secure-next-auth.session-token"
-          : "next-auth.session-token",
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-hebron.session-token" // Branding du token
+        : "hebron.session-token",
       options: {
         httpOnly: true,
-        sameSite: "lax", // ✅ requis pour getServerSession en App Router
+        sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production",
       },
@@ -26,57 +26,66 @@ export const authOptions = {
 
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: "Hebron Terminal Access",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: "Email ID", type: "email" },
+        password: { label: "Access Code", type: "password" },
       },
 
-      // ✅ IMPORTANT : retourner null (PAS throw) en cas d’échec
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        if (!credentials?.email || !credentials?.password) return null;
+
+        console.log(`[AUTH PROTOCOL] : Tentative d'accès pour ${credentials.email.toLowerCase()}`);
+
+        try {
+          await connectDB();
+
+          const user = await User.findOne({
+            email: credentials.email.toLowerCase().trim(),
+          });
+
+          if (!user) {
+            console.warn(`[AUTH WARNING] : Échec d'identification - Utilisateur inconnu.`);
+            return null;
+          }
+
+          const isValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isValid) {
+            console.warn(`[AUTH WARNING] : Échec d'identification - Code d'accès invalide.`);
+            return null;
+          }
+
+          // ✅ TRANSMISSION DES DONNÉES SÉCURISÉES
+          return {
+            id: user._id.toString(),
+            name: user.name,
+            email: user.email,
+            isAdmin: user.isAdmin,
+          };
+        } catch (error) {
+          console.error(`[CRITICAL ERROR] : Panne du nœud d'authentification.`, error);
           return null;
         }
-
-        await connectDB();
-
-        const user = await User.findOne({
-          email: credentials.email.toLowerCase().trim(),
-        });
-
-        if (!user) {
-          return null;
-        }
-
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isValid) {
-          return null;
-        }
-
-        // ✅ Objet user minimal et sérialisable
-        return {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-          isAdmin: user.isAdmin,
-        };
       },
     }),
   ],
 
   callbacks: {
+    // Étape 1 : Enregistrement des données dans le Web Token
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.isAdmin = user.isAdmin;
+        console.log(`[AUTH SYSTEM] : Token généré pour l'opérateur ${user.email}`);
       }
       return token;
     },
 
+    // Étape 2 : Transmission vers la session client (useSession)
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
@@ -88,6 +97,7 @@ export const authOptions = {
 
   pages: {
     signIn: "/login",
+    error: "/login", // Redirige les erreurs vers la page de garde
   },
 
   secret: process.env.NEXTAUTH_SECRET,

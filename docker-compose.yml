@@ -1,11 +1,29 @@
 services:
   mongo:
     image: mongo:7
-    container_name: my-ecommerce-mongo
+    container_name: hebron-mongo-core
+    restart: always  # Relance le moteur automatiquement en cas de crash du serveur
     ports:
       - "27017:27017"
+    environment:
+      # --- SÉCURITÉ : ACCÈS RACINE ---
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
     volumes:
       - mongo_data:/data/db
+    networks:
+      - hebron-network
+    healthcheck:
+      # Vérifie que la base de données répond bien avant de lancer l'application
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  hebron-network:
+    driver: bridge
 
 volumes:
   mongo_data:
+    driver: local

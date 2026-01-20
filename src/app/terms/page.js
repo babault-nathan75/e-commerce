@@ -5,7 +5,7 @@ export default function TermsPage() {
       
       <p className="mb-6 text-gray-600">
         Dernière mise à jour : 10 Janvier 2026. 
-        Bienvenue sur **MA BOUTIQUE**. Les présentes conditions régissent l'ensemble des transactions effectuées sur notre site.
+        Bienvenue sur **Hebron Ivoire Shops**. Les présentes conditions régissent l'ensemble des transactions effectuées sur notre site.
       </p>
 
       <section className="space-y-8">
@@ -53,7 +53,7 @@ export default function TermsPage() {
 
       <div className="mt-12 p-6 border-t text-center space-y-2">
         <p className="font-semibold">Une question ?</p>
-        <p className="text-gray-600">Contactez notre support WhatsApp au : +225 XX XX XX XX XX</p>
+        <p className="text-gray-600">Contactez notre support WhatsApp au : +225 0503117454</p>
       </div>
     </div>
   );

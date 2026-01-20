@@ -8,7 +8,11 @@ const UserSchema = new mongoose.Schema(
     address: { type: String, default: "" }, // <-- AJOUT
     passwordHash: { type: String, required: true },
     isAdmin: { type: Boolean, default: false },
-    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }]
+    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
+    // ... dans votre userSchema
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
+    // ...
   },
   { timestamps: true }
 );

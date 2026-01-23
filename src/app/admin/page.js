@@ -129,7 +129,7 @@ export default function AdminHome() {
             <div className="relative">
               <button onClick={() => { setShowShopMenu(!showShopMenu); setShowLibMenu(false); }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showShopMenu ? 'bg-orange-500 text-white shadow-lg' : 'opacity-70 hover:opacity-100'}`}>
-                <Store size={18} /> Shop <ChevronDown size={14} className={showShopMenu ? 'rotate-180' : ''} />
+                <Store size={18} /> Boutique <ChevronDown size={14} className={showShopMenu ? 'rotate-180' : ''} />
               </button>
               {showShopMenu && (
                 <DropdownMenu 

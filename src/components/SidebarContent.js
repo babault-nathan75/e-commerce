@@ -40,11 +40,11 @@ export default function SidebarContent() {
 
       <h3 className="px-4 mb-3 mt-8 text-[9px] font-black text-gray-500 uppercase tracking-[0.3em]">Espace Opérateur</h3>
       {session?.user ? (
-        <NavItem href="/orders" icon={Package} label="Commandes" activeMatch="/orders" />
+        <NavItem href="/orders" icon={Package} label="Mes Commandes" activeMatch="/orders" />
       ) : (
         <NavItem href="/order/track" icon={Search} label="Suivi Colis" activeMatch="/order/track" />
       )}
-      {isAdmin && <NavItem href="/admin" icon={Shield} label="Panel Contrôle" activeMatch="/admin" />}
+      {isAdmin && <NavItem href="/admin" icon={Shield} label="Administration" activeMatch="/admin" />}
     </div>
   );
 }

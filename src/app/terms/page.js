@@ -54,6 +54,7 @@ export default function TermsPage() {
       <div className="mt-12 p-6 border-t text-center space-y-2">
         <p className="font-semibold">Une question ?</p>
         <p className="text-gray-600">Contactez notre support WhatsApp au : +225 0503117454</p>
+        
       </div>
     </div>
   );

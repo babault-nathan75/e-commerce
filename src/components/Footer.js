@@ -50,10 +50,10 @@ export default function Footer() {
           <div className="flex flex-col space-y-6">
             <SectionTitle title="Exploration" color="bg-emerald-500" />
             <ul className="space-y-4">
-              <FooterLink href="/" label="Flux Accueil" />
-              <FooterLink href="/shop" label="Catalogue Shop" />
-              <FooterLink href="/library" label="Librairie PDF" />
-              <FooterLink href="/order/track" label="Track Order" />
+              <FooterLink href="/" label="Accueil" />
+              <FooterLink href="/shop" label="boutique" />
+              <FooterLink href="/library" label="Librairie chrétienne" />
+              <FooterLink href="/order/track" label="Suivre la commande" />
             </ul>
           </div>
 
@@ -63,8 +63,8 @@ export default function Footer() {
             <ul className="space-y-4">
               <FooterLink href="/terms" label="Conditions CGV" />
               <FooterLink href="/faq" label="Centre d'aide" />
-              <FooterLink href="/privacy" label="Privacy Protocol" />
-              <FooterLink href="/contact" label="Open Ticket" />
+              <FooterLink href="/privacy" label="Protocole de confidentialité" />
+              {/* <FooterLink href="/contact" label="Open Ticket" /> */}
             </ul>
           </div>
 
@@ -95,8 +95,8 @@ export default function Footer() {
                 <div className="p-2 bg-white/5 rounded-lg text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
                   <Mail size={16} />
                 </div>
-                <a href="mailto:contact@hebronivoire.ci" className="text-[11px] font-black text-gray-300 uppercase tracking-tighter hover:text-orange-500 transition-colors">
-                  contact@hebronivoire.ci
+                <a href="mailto:hebronivoireshops@gmail.com" className="text-[11px] font-black text-gray-300 uppercase tracking-tighter hover:text-orange-500 transition-colors">
+                  hebronivoireshops@gmail.com
                 </a>
               </li>
             </ul>
@@ -118,7 +118,7 @@ export default function Footer() {
           <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
             <Zap size={12} className="text-yellow-500 fill-yellow-500 animate-pulse" />
             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-              Engineered for <span className="text-white italic">Africa</span>
+              Conçu pour <span className="text-white italic">les ivoiriens</span>
             </p>
           </div>
         </div>

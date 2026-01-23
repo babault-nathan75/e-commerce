@@ -30,7 +30,7 @@ export default function MobileSidebar() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed top-3 left-2 z-[60] p-3 rounded-2xl bg-[#232f3e] text-white shadow-2xl border border-white/10 active:scale-90 transition-all"
+          className="md:hidden fixed top-3 left-2 z-[60] p-3 rounded-2xl bg-[#232f3e] text-white shadow-2xl border border-white/10 active:scale-90 transition-all"
         >
           <Menu size={18} />
         </button>
@@ -58,7 +58,7 @@ export default function MobileSidebar() {
           <div className="flex items-center gap-3">
             <div className="flex flex-col">
               <h2 className="text-xl font-black italic uppercase tracking-tighter leading-none">
-                Hebron <span className="text-orange-500">Shops</span>
+                <span className="text-orange-500">Hebron</span> Ivoire <span className="text-green-500">Shops</span>
               </h2>
             </div>
           </div>

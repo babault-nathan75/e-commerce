@@ -124,7 +124,7 @@ export default async function ShopPage({ searchParams }) {
                 ) : category ? (
                    category
                 ) : (
-                   <span>Nos <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500">Pépites</span></span>
+                   <span>Nos <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500">Articles</span></span>
                 )}
               </h1>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 font-medium">

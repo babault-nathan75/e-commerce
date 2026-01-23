@@ -77,8 +77,8 @@ export default function Sidebar() {
         
         <SectionTitle title="Explorer" />
         <div className="space-y-1">
-          <NavItem href="/shop" icon={Store} label="Boutique" activeMatch="/shop" />
-          <NavItem href="/library" icon={BookOpen} label="Librairie" activeMatch="/library" />
+          <NavItem href="/shop" icon={Store} label="Espace boutique" activeMatch="/shop" />
+          <NavItem href="/library" icon={BookOpen} label="Librairie chrétienne" activeMatch="/library" />
           <NavItem href="/favorites" icon={Heart} label="Favoris" activeMatch="/favorites" />
         </div>
 

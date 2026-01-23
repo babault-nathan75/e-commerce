@@ -1,24 +1,45 @@
 services:
+  # --- LE NOYAU DE DONNÉES (BASE DE DONNÉES) ---
   mongo:
     image: mongo:7
     container_name: hebron-mongo-core
-    restart: always  # Relance le moteur automatiquement en cas de crash du serveur
+    restart: always
     ports:
-      - "27017:27017"
-    environment:
-      # --- SÉCURITÉ : ACCÈS RACINE ---
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - "27017:27017" # Optionnel : à retirer en prod pour plus de sécurité
     volumes:
       - mongo_data:/data/db
     networks:
       - hebron-network
     healthcheck:
-      # Vérifie que la base de données répond bien avant de lancer l'application
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # --- LE TERMINAL APPLICATIF (NEXT.JS) ---
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hebron-app-terminal
+    restart: always
+    ports:
+      - "4000:3000"
+    environment:
+      # On utilise 'mongo' (le nom du service) au lieu de localhost
+      - MONGODB_URI=mongodb+srv://nathanbabault_db_user:nathinius_75@cluster0.3nvkkdc.mongodb.net/?appName=Cluster0
+      - NEXTAUTH_SECRET=864b2b7a6db7ae7fabeea4c8d8921f7ed12d1ab30065737dc588b94d89fd2572
+      - EMAIL_USER=babaultnathancharles02@gmail.com
+      - EMAIL_PASS=zyaa qytt muao mvrq
+      - TWILIO_AUTH_TOKEN=a99a45ef038bba02083f37948acaf8aa
+      - TWILIO_WHATSAPP_NUMBER=14155238886
+      - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BPBTSnS2tnXqQKn2gSrx77BDW7aQTPq73vVKKl6JmaAKXRhX9CZjkSHZNxTs0DQ0wAYZGw4PHw0gAIWeCPCaX0k
+      - VAPID_PRIVATE_KEY=eSIHaERbxnN_8p2w9G9aOcDb9nNM8soJLsXerxg8OOA
+    depends_on:
+      mongo:
+        condition: service_healthy # L'app attend que Mongo soit prêt (healthcheck)
+    networks:
+      - hebron-network
 
 networks:
   hebron-network:

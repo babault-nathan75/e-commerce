@@ -34,8 +34,8 @@ export default function SidebarContent() {
   return (
     <div className="space-y-1">
       <h3 className="px-4 mb-3 mt-6 text-[9px] font-black text-gray-500 uppercase tracking-[0.3em]">Flux Navigation</h3>
-      <NavItem href="/shop" icon={Store} label="Boutique" activeMatch="/shop" />
-      <NavItem href="/library" icon={BookOpen} label="Librairie" activeMatch="/library" />
+      <NavItem href="/shop" icon={Store} label="Espace boutique" activeMatch="/shop" />
+      <NavItem href="/library" icon={BookOpen} label="Librairie chrétienne" activeMatch="/library" />
       <NavItem href="/favorites" icon={Heart} label="Mes Favoris" activeMatch="/favorites" />
 
       <h3 className="px-4 mb-3 mt-8 text-[9px] font-black text-gray-500 uppercase tracking-[0.3em]">Espace Opérateur</h3>

@@ -53,7 +53,9 @@ export default async function ProductDetailsPage({ params }) {
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : 0;
 
-  const stockQty = Number(p.stockAvailable ?? 0);
+  // ✅ 1. CALCUL DU STOCK SÉCURISÉ
+  // On vérifie stockAvailable ET stock pour être sûr de ne rien rater
+  const stockQty = Number(p.stockAvailable ?? p.stock ?? 0);
   const isOutOfStock = stockQty <= 0;
   const isLowStock = stockQty > 0 && stockQty <= 5;
 
@@ -140,6 +142,7 @@ export default async function ProductDetailsPage({ params }) {
               <div className="space-y-4 mb-10">
                 <div className="flex flex-col sm:flex-row items-stretch gap-4">
                   <div className="flex-1">
+                    {/* ✅ 2. MODIFICATION ICI : On passe 'disabled' et 'stockAvailable' */}
                     <AddToCartButton
                       disabled={isOutOfStock}
                       product={{
@@ -147,7 +150,7 @@ export default async function ProductDetailsPage({ params }) {
                         name: p.name,
                         price: p.price,
                         imageUrl: p.imageUrl,
-                        stock: stockQty
+                        stockAvailable: stockQty // CRUCIAL pour le blocage dans le panier
                       }}
                     />
                   </div>

@@ -162,7 +162,7 @@ export default function OrderTrackPage() {
                       className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-mono text-gray-900 dark:text-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all placeholder-gray-400 uppercase"
                       value={orderCode}
                       onChange={(e) => setOrderCode(e.target.value.toUpperCase())}
-                      placeholder="CMD-202X-XXXX"
+                      placeholder="ME-202X-XXXX"
                     />
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export default function OrderTrackPage() {
                   "
                 >
                   {loading ? <Loader2 className="animate-spin" /> : <Search size={18} />}
-                  {loading ? "Recherche..." : "Localiser"}
+                  {loading ? "Recherche..." : "Rechercher"}
                 </button>
               </div>
             </form>
@@ -306,35 +306,37 @@ export default function OrderTrackPage() {
                  </div>
 
                  {/* Section Annulation */}
-                 <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                       <AlertTriangle size={16} className="text-red-500"/> Zone d'annulation
-                    </h4>
-                    
-                    {!canCancel ? (
-                       <div className="p-3 bg-gray-200 dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 text-center">
-                          Cette commande ne peut plus être annulée (Livrée ou déjà annulée).
-                       </div>
-                    ) : (
-                       <div className="space-y-3">
-                          <textarea
-                             className="w-full p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm outline-none focus:border-red-500 transition-colors resize-none"
-                             placeholder="Motif de l'annulation (obligatoire)"
-                             rows={2}
-                             value={cancelReason}
-                             onChange={(e) => setCancelReason(e.target.value)}
-                          />
-                          {cancelMsg && <p className="text-xs font-bold text-green-600 flex items-center gap-1"><CheckCircle2 size={12}/> {cancelMsg}</p>}
-                          <button
-                             disabled={cancelLoading}
-                             onClick={cancelGuestOrder}
-                             className="w-full py-3 rounded-xl border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold text-xs uppercase tracking-widest transition-colors disabled:opacity-50"
-                          >
-                             {cancelLoading ? "Traitement..." : "Annuler définitivement"}
-                          </button>
-                       </div>
-                    )}
-                 </div>
+                 {order.status !== "LIVRER" && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+                       <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                          <AlertTriangle size={16} className="text-red-500"/> Zone d'annulation
+                       </h4>
+                       
+                       {!canCancel ? (
+                          <div className="p-3 bg-gray-200 dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 text-center">
+                             Cette commande ne peut plus être annulée (Livrée ou déjà annulée).
+                          </div>
+                       ) : (
+                          <div className="space-y-3">
+                             <textarea
+                                className="w-full p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm outline-none focus:border-red-500 transition-colors resize-none"
+                                placeholder="Motif de l'annulation (obligatoire)"
+                                rows={2}
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                             />
+                             {cancelMsg && <p className="text-xs font-bold text-green-600 flex items-center gap-1"><CheckCircle2 size={12}/> {cancelMsg}</p>}
+                             <button
+                                disabled={cancelLoading}
+                                onClick={cancelGuestOrder}
+                                className="w-full py-3 rounded-xl border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold text-xs uppercase tracking-widest transition-colors disabled:opacity-50"
+                             >
+                                {cancelLoading ? "Traitement..." : "Annuler définitivement"}
+                             </button>
+                          </div>
+                       )}
+                    </div>
+                 )}
               </div>
 
             </div>

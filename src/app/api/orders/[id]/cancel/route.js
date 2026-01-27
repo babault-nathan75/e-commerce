@@ -44,13 +44,13 @@ export async function POST(req, { params }) {
     );
   }
 
-  order.status = "ANNULEE";
+  order.status = "ANNULER";
   order.canceledAt = new Date();
   await order.save();
 }
 
 
-  order.status = "ANNULEE";
+  order.status = "ANNULER";
   order.canceledAt = new Date();
   order.canceledBy = canceledBy;
   order.cancelReason = body.reason || null;

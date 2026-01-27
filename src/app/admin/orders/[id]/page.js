@@ -66,11 +66,6 @@ export default async function AdminOrderDetailsPage({ params }) {
                </div>
                LISTE DES COMMANDES
             </Link>
-            <div className="flex gap-3">
-                <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-500 transition-all shadow-lg shadow-gray-200">
-                    <Printer size={16} /> Imprimer Facture
-                </button>
-            </div>
           </div>
         </div>
 
@@ -81,7 +76,7 @@ export default async function AdminOrderDetailsPage({ params }) {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-black text-orange-600 bg-orange-100 px-3 py-1 rounded-full uppercase tracking-[0.2em]">
-                   WorkOrder Tracking
+                   Details de la commande
                 </span>
                 <span className="text-gray-300 font-light">/</span>
                 <span className="font-mono text-[11px] text-gray-400 select-all">UUID: {order._id.toString()}</span>
@@ -119,7 +114,7 @@ export default async function AdminOrderDetailsPage({ params }) {
                 </h3>
                 <div className="grid md:grid-cols-2 gap-12 relative z-10">
                   <div className="space-y-8">
-                    <InfoBlock icon={<UserIcon size={22}/>} label="Client" value={displayName} sub={isGuest ? "Commande Invité" : "Compte Client Hebron"} />
+                    <InfoBlock icon={<UserIcon size={22}/>} label="Client" value={displayName} sub={isGuest ? "Commande Invité" : "Compte Client Hebron Ivoire Shops"} />
                     <InfoBlock icon={<Mail size={22}/>} label="Email" value={displayEmail || "---"} isEmail />
                   </div>
                   <div className="space-y-8">
@@ -142,29 +137,42 @@ export default async function AdminOrderDetailsPage({ params }) {
                 </div>
 
                 <div className="space-y-6">
-                  {order.items.map((it, idx) => (
-                    <div key={idx} className="group flex items-center justify-between p-4 rounded-3xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100">
-                      <div className="flex items-center gap-6">
-                        <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900 rounded-2xl flex items-center justify-center p-3 group-hover:bg-white transition-colors shadow-inner">
-                           <Package className="text-gray-200" size={40} />
-                        </div>
-                        <div>
-                          <p className="font-black text-gray-900 text-lg leading-tight group-hover:text-orange-600 transition-colors">{it.name}</p>
-                          <p className="text-[11px] font-black text-gray-400 mt-2 uppercase tracking-widest">
-                            Quantité : <span className="text-gray-900">{it.quantity}</span> 
-                            <span className="mx-3 opacity-20 text-gray-900">|</span> 
-                            Prix Unitaire : <span className="text-gray-900">{it.price.toLocaleString()} FCFA</span>
-                          </p>
-                        </div>
+                {order.items.map((it, idx) => (
+                  <div key={idx} className="group flex items-center justify-between p-4 rounded-3xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100">
+                    <div className="flex items-center gap-6">
+                      {/* CONTAINER IMAGE */}
+                      <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900 rounded-2xl flex items-center justify-center overflow-hidden p-2 group-hover:bg-white transition-colors shadow-inner border border-gray-100">
+                        {it.imageUrl || it.image ? (
+                          <img 
+                            src={it.imageUrl || it.image} 
+                            alt={it.name} 
+                            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                          />
+                        ) : (
+                          <Package className="text-gray-200" size={40} />
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="text-xl font-black text-gray-900 tracking-tighter">
-                          {(it.quantity * it.price).toLocaleString()} <span className="text-[10px] text-gray-400 font-bold uppercase">FCFA</span>
+
+                      <div>
+                        <p className="font-black text-gray-900 text-lg leading-tight group-hover:text-orange-600 transition-colors">
+                          {it.name}
+                        </p>
+                        <p className="text-[11px] font-black text-gray-400 mt-2 uppercase tracking-widest">
+                          Quantité : <span className="text-gray-900">{it.quantity}</span> 
+                          <span className="mx-3 opacity-20 text-gray-900">|</span> 
+                          Prix Unitaire : <span className="text-gray-900">{it.price.toLocaleString()} FCFA</span>
                         </p>
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="text-right">
+                      <p className="text-xl font-black text-gray-900 tracking-tighter">
+                        {(it.quantity * it.price).toLocaleString()} <span className="text-[10px] text-gray-400 font-bold uppercase">FCFA</span>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
                 {/* TOTAL SUMMARY CARD */}
                 <div className="mt-12 p-10 bg-[#232f3e] rounded-[3rem] text-white flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden shadow-2xl">

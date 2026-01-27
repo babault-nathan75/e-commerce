@@ -11,6 +11,8 @@ import { notifyAdmins } from "@/lib/notifyAdmins";
 import { generateInvoicePDF } from "@/lib/pdf/invoice";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
 import sanitize from "mongo-sanitize";
+import { sendOrderMail } from "@/services/mail.service"; // ✅ Importation du service mail
+
 
 const CreateOrderSchema = z.object({
   items: z.array(z.object({
@@ -71,25 +73,42 @@ export async function POST(req) {
 
     const safeCustomerEmail = sanitizeEmail(customerEmail);
 
-    /* 🛒 PRODUITS */
+    /* 🛒 PRODUITS & VÉRIFICATION STOCK */
+    // On récupère les produits concernés
     const products = await Product.find({ _id: { $in: data.items.map(i => i.productId) } });
     const map = new Map(products.map(p => [p._id.toString(), p]));
 
-    const items = data.items.map(i => {
-      const p = map.get(i.productId);
-      if (!p) throw new Error("Produit introuvable");
-      return {
-        productId: p._id,
-        name: p.name,
-        price: p.price,
-        quantity: i.quantity
-      };
-    });
+    const items = [];
 
+    // On boucle sur les articles demandés pour vérifier le stock AVANT de créer la commande
+    for (const itemRequest of data.items) {
+      const product = map.get(itemRequest.productId);
+
+      if (!product) {
+        return NextResponse.json({ error: "Un des produits est introuvable" }, { status: 400 });
+      }
+
+      // 🔴 VÉRIFICATION DU STOCK ICI 🔴
+      if (itemRequest.quantity > product.stockAvailable) {
+        return NextResponse.json(
+          { error: "Votre demande est élévé par rapport au stock actuel" },
+          { status: 400 }
+        );
+      }
+
+      items.push({
+        productId: product._id,
+        name: product.name,
+        price: product.price,
+        quantity: itemRequest.quantity
+      });
+    }
+
+    // Si on arrive ici, c'est que le stock est suffisant pour tous les articles
     const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
     const orderCode = generateOrderCode();
 
-    /* 🧾 COMMANDE */
+    /* 🧾 CRÉATION COMMANDE */
     const order = await Order.create({
       orderCode,
       items,
@@ -102,13 +121,13 @@ export async function POST(req) {
       guest: !session?.user ? data.guest : null
     });
 
-    /* 🔻 STOCK (anti double commande) */
+    /* 🔻 MISE À JOUR STOCK RÉEL */
+    // On décrémente le stock maintenant que la commande est validée
     for (const item of items) {
-      const updated = await Product.findOneAndUpdate(
-        { _id: item.productId, stockAvailable: { $gte: item.quantity } },
+      await Product.updateOne(
+        { _id: item.productId },
         { $inc: { stockAvailable: -item.quantity } }
       );
-      if (!updated) throw new Error(`Stock insuffisant pour ${item.name}`);
     }
 
     const orderForMail = { ...order.toObject(), customerName, customerEmail, customerPhone, deliveryAddress };
@@ -150,7 +169,10 @@ export async function POST(req) {
             bcc: adminEmails.slice(1).join(","),
             subject: `🛒 Nouvelle commande ${orderCode}`,
             text: `Client: ${customerName}\nMontant: ${totalPrice} FCFA`,
-            html: `<b>Client:</b> ${customerName}<br/><b>Total:</b> ${totalPrice} FCFA`
+            html: `<b>Client:</b> ${customerName}<br/>
+                   <b>Total:</b> ${totalPrice} FCFA <br/>
+                   <b>Code de commande:</b> ${orderCode}<br/>
+                   <b>Date & heure:</b> ${new Date().toLocaleString('fr-FR')}`
           })
         );
       }

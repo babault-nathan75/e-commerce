@@ -48,7 +48,7 @@ export default function OrderStatusBox({ orderId, status, canceledAt }) {
   const steps = [
     { key: "EFFECTUER", label: "Préparation", icon: Clock },
     { key: "EN_COURS_DE_LIVRAISON", label: "Expédition", icon: Truck },
-    { key: "LIVRER", label: "Livraison", icon: PackageCheck }
+    { key: "LIVRER", label: "Livrer", icon: PackageCheck }
   ];
 
   const currentIdx = steps.findIndex(s => s.key === status);

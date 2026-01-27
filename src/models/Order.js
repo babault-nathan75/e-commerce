@@ -34,7 +34,7 @@ const OrderSchema = new mongoose.Schema(
         "EFFECTUER",
         "EN_COURS_DE_LIVRAISON",
         "LIVRER",
-        "ANNULEE"
+        "ANNULER"
       ],
       default: "EFFECTUER",
       index: true

@@ -55,7 +55,7 @@ export default function HomePage() {
               focus:outline-none focus:ring-4 focus:ring-orange-300 dark:focus:ring-orange-900
             "
           >
-            🛒 Accéder à la boutique
+            🛒 Accéder à l'espace boutique
             <span className="ml-2 transition-transform group-hover:translate-x-1">→</span>
           </Link>
 
@@ -73,7 +73,7 @@ export default function HomePage() {
               hover:scale-105 hover:bg-green-50 dark:hover:bg-gray-700
             "
           >
-            📚 Explorer la librairie
+            📚 Explorer la librairie chrétienne
           </Link>
         </div>
 

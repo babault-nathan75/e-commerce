@@ -1,10 +1,11 @@
 "use client";
 
 import { useCartStore } from "@/store/cart";
-import { ShoppingBag, Trash2, Check, Plus } from "lucide-react";
+import { ShoppingBag, Trash2, Check, Ban } from "lucide-react"; // ✅ Ajout de l'icône Ban
 import { useState } from "react";
 
-export default function AddToCartButton({ product }) {
+// ✅ Ajout de la prop 'disabled'
+export default function AddToCartButton({ product, disabled = false }) {
   const toggleItem = useCartStore((s) => s.toggleItem);
   const items = useCartStore((s) => s.items);
   const [isAnimate, setIsAnimate] = useState(false);
@@ -14,12 +15,41 @@ export default function AddToCartButton({ product }) {
   );
 
   const handleToggle = () => {
+    // ⛔️ Sécurité : On ne fait rien si désactivé
+    if (disabled) return;
+
     setIsAnimate(true);
-    toggleItem(product);
-    // Petite animation de feedback
+    
+    const itemToAdd = {
+        ...product,
+        stockAvailable: product.stockAvailable ?? product.stock ?? 99
+    };
+
+    toggleItem(itemToAdd);
+    
     setTimeout(() => setIsAnimate(false), 500);
   };
 
+  // 🔴 ETAT : RUPTURE DE STOCK (Affichage spécifique)
+  if (disabled) {
+    return (
+      <button
+        disabled
+        className="
+          flex items-center justify-center gap-3
+          px-8 py-3.5 rounded-2xl font-black uppercase tracking-widest text-xs
+          bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 
+          cursor-not-allowed border border-gray-200 dark:border-gray-700
+          opacity-70
+        "
+      >
+        <Ban className="w-5 h-5" />
+        <span>Rupture de stock</span>
+      </button>
+    );
+  }
+
+  // 🟢 ETAT : NORMAL
   return (
     <button
       onClick={handleToggle}
@@ -39,7 +69,6 @@ export default function AddToCartButton({ product }) {
       <div className="relative w-5 h-5 flex items-center justify-center">
         {isInCart ? (
           <div className="animate-in zoom-in duration-300">
-            {/* Affiche une poubelle au hover sinon un check */}
             <Trash2 className="w-5 h-5 hidden group-hover:block transition-all" />
             <Check className="w-5 h-5 block group-hover:hidden transition-all text-green-500" />
           </div>

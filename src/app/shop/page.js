@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, AlertTriangle, CheckCircle2, Flame, PackageOpen } from "lucide-react";
+import { Search, Flame, PackageOpen, Zap, ShoppingCart } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { connectDB } from "@/lib/db";
 import { Product } from "@/models/Product";
@@ -13,18 +13,25 @@ export const metadata = {
 
 const PAGE_SIZE = 12;
 
-// --- Styles Unifiés ---
-const CHIP_BASE = "flex-shrink-0 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 border";
+// --- Moteur de Style Hebron ---
+const CHIP_BASE = "flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 border";
 const CHIP_ACTIVE = `
   ${CHIP_BASE} 
-  bg-gray-900 text-white border-gray-900 shadow-md 
-  dark:bg-white dark:text-gray-900 dark:border-white dark:shadow-white/10
+  bg-gray-900 text-white border-gray-900 shadow-xl shadow-gray-900/20 
+  dark:bg-white dark:text-gray-900 dark:border-white
 `;
 const CHIP_INACTIVE = `
   ${CHIP_BASE} 
-  bg-white text-gray-600 border-gray-200 hover:border-orange-400 hover:text-orange-500 
-  dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:border-orange-400 dark:hover:text-orange-400
+  bg-white text-gray-400 border-gray-100 hover:border-orange-500 hover:text-orange-500 
+  dark:bg-gray-900 dark:text-gray-500 dark:border-gray-800 dark:hover:border-orange-400
 `;
+
+// Formatage monétaire unifié
+const currencyFormatter = new Intl.NumberFormat('fr-FR', {
+  style: 'currency',
+  currency: 'XOF',
+  minimumFractionDigits: 0
+});
 
 export default async function ShopPage({ searchParams }) {
   const params = await searchParams;
@@ -35,7 +42,6 @@ export default async function ShopPage({ searchParams }) {
 
   await connectDB();
 
-  // Récupération des données en parallèle
   const [categories, activeBanners] = await Promise.all([
     Product.distinct("category", { channel: "shop" }),
     Banner.find({ isActive: true, link: "/shop" }).sort({ createdAt: -1 }).lean()
@@ -47,7 +53,7 @@ export default async function ShopPage({ searchParams }) {
 
   const [productsRaw, total] = await Promise.all([
     Product.find(query)
-      .sort({ stock: -1, createdAt: -1 })
+      .sort({ stockAvailable: -1, createdAt: -1 })
       .skip(skip)
       .limit(PAGE_SIZE)
       .lean(),
@@ -58,40 +64,34 @@ export default async function ShopPage({ searchParams }) {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20 transition-colors duration-300">
+      <div className="min-h-screen bg-[#f8fafc] dark:bg-gray-950 pb-20 transition-colors duration-500">
         
-        {/* --- HEADER & FILTRES (STICKY) --- */}
-        <div className="sticky top-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-gray-950/80 border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors duration-300">
-          <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
+        {/* --- NAVIGATION TACTIQUE --- */}
+        <div className="sticky top-0 z-30 backdrop-blur-md bg-white/70 dark:bg-gray-950/70 border-b border-gray-100 dark:border-gray-900 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
             
-            {/* Barre de recherche */}
-            <form method="GET" action="/shop" className="relative group max-w-2xl mx-auto">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+            <form method="GET" action="/shop" className="relative group max-w-3xl mx-auto">
+              <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-300 group-focus-within:text-orange-500 transition-colors" />
               </div>
               <input
                 type="text"
                 name="search"
                 defaultValue={search}
-                placeholder="Rechercher un produit..."
+                placeholder="RECHERCHER DANS L'INVENTAIRE..."
                 className="
-                  block w-full pl-11 pr-4 py-3 
-                  bg-gray-100 dark:bg-gray-900 
-                  border-transparent focus:border-orange-500 focus:bg-white dark:focus:bg-black focus:ring-0 
-                  rounded-xl text-sm 
-                  text-gray-900 dark:text-gray-100 placeholder-gray-500
-                  transition-all duration-300
-                  shadow-inner
+                  block w-full pl-14 pr-4 py-4
+                  bg-gray-50 dark:bg-gray-900 
+                  border-transparent focus:border-orange-500 focus:bg-white dark:focus:bg-black focus:ring-4 focus:ring-orange-500/5
+                  rounded-2xl text-[11px] font-black uppercase tracking-widest
+                  text-gray-900 dark:text-gray-100 placeholder-gray-400
+                  transition-all duration-300 shadow-inner
                 "
               />
-              {category && <input type="hidden" name="category" value={category} />}
             </form>
 
-            {/* Catégories (Chips) */}
-            <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide pb-2">
-              <Link href="/shop" className={!category ? CHIP_ACTIVE : CHIP_INACTIVE}>
-                Tout voir
-              </Link>
+            <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide pb-2 px-1">
+              <Link href="/shop" className={!category ? CHIP_ACTIVE : CHIP_INACTIVE}>TOUT VOIR</Link>
               {categories.map((cat) => (
                 <Link
                   key={cat}
@@ -105,41 +105,37 @@ export default async function ShopPage({ searchParams }) {
           </div>
         </div>
 
-        {/* --- CONTENU PRINCIPAL --- */}
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 py-10">
           
-          {/* Bannières */}
           {!category && !search && activeBanners.length > 0 && (
-            <div className="mb-10 rounded-2xl overflow-hidden shadow-2xl shadow-orange-500/10 dark:shadow-none">
+            <div className="mb-14 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-orange-500/10 border border-white dark:border-gray-900">
                <BannerCarousel banners={JSON.parse(JSON.stringify(activeBanners))} />
             </div>
           )}
 
-          {/* Titre Section */}
-          <div className="flex items-end justify-between mb-8 px-1">
+          {/* --- HEADER SECTION --- */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4 border-l-4 border-orange-500 pl-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                {search ? (
-                   <span>Résultats pour "<span className="text-orange-500">{search}</span>"</span>
-                ) : category ? (
-                   category
-                ) : (
-                   <span>Nos <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500">Articles</span></span>
-                )}
+              <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.4em] mb-2">Hebron Inventory</p>
+              <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
+                {search ? `Query: ${search}` : category ? category : "Nos Articles"}
               </h1>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 font-medium">
-                {total} référence{total > 1 ? 's' : ''} trouvée{total > 1 ? 's' : ''}
-              </p>
+            </div>
+            <div className="bg-gray-900 dark:bg-white px-4 py-2 rounded-xl">
+               <p className="text-[10px] font-black text-white dark:text-gray-900 uppercase tracking-widest">
+                 {total} Unités détectées
+               </p>
             </div>
           </div>
 
           {/* --- GRID PRODUITS --- */}
           {productsRaw.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
               {productsRaw.map((p) => {
-                const isOutOfStock = p.stock <= 0;
-                const lowStock = p.stock > 0 && p.stock <= 5;
-                const stockPercent = Math.min((p.stock / 20) * 100, 100);
+                const realStock = p.stockAvailable ?? p.stock ?? 0;
+                const isOutOfStock = realStock <= 0;
+                const lowStock = realStock > 0 && realStock <= 5;
+                const isNew = new Date(p.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
                 return (
                   <Link
@@ -147,75 +143,72 @@ export default async function ShopPage({ searchParams }) {
                     href={`/product/${p._id}`}
                     className={`
                       group relative flex flex-col 
-                      bg-white dark:bg-gray-800 
-                      rounded-2xl border border-gray-100 dark:border-gray-700
-                      overflow-hidden
-                      transition-all duration-500
-                      ${isOutOfStock ? 'opacity-70 grayscale-[0.5]' : 'hover:-translate-y-2 hover:shadow-2xl hover:shadow-orange-500/10 dark:hover:shadow-black/50'}
+                      bg-white dark:bg-gray-900 
+                      rounded-[2rem] border border-gray-100 dark:border-gray-800
+                      overflow-hidden transition-all duration-500
+                      ${isOutOfStock ? 'opacity-60' : 'hover:-translate-y-3 hover:shadow-3xl hover:shadow-orange-500/20'}
                     `}
                   >
-                    {/* Badge Stock Flottant (Top Right) */}
-                    {isOutOfStock && (
-                      <div className="absolute top-3 right-3 z-10 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase shadow-lg">
-                        Épuisé
-                      </div>
-                    )}
-                    {lowStock && !isOutOfStock && (
-                       <div className="absolute top-3 right-3 z-10 bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase shadow-lg flex items-center gap-1">
-                         <Flame size={10} className="fill-white" /> -{p.stock}
-                       </div>
-                    )}
+                    {/* Badges Flottants */}
+                    <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                      {isNew && !isOutOfStock && (
+                        <div className="bg-emerald-500 text-white text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1 shadow-lg">
+                          <Zap size={10} fill="currentColor" /> Nouveau
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="absolute top-4 right-4 z-10">
+                      {isOutOfStock ? (
+                        <div className="bg-gray-900 text-white text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest">Épuisé</div>
+                      ) : lowStock ? (
+                        <div className="bg-orange-500 text-white text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest animate-pulse flex items-center gap-1">
+                          <Flame size={10} fill="currentColor" /> Vite !
+                        </div>
+                      ) : null}
+                    </div>
 
                     {/* Image Container */}
-                    <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-700/50 p-6 flex items-center justify-center overflow-hidden">
+                    <div className="relative aspect-[4/5] w-full bg-[#f9fafb] dark:bg-gray-800/50 p-8 flex items-center justify-center overflow-hidden">
                       <img
                         src={p.imageUrl}
                         alt={p.name}
-                        className="
-                          w-full h-full object-contain 
-                          mix-blend-multiply dark:mix-blend-normal 
-                          transition-transform duration-700 ease-out group-hover:scale-110
-                        "
+                        className="w-full h-full object-contain transition-transform duration-700 ease-out group-hover:scale-110"
                       />
+                      {!isOutOfStock && (
+                        <div className="absolute bottom-4 right-4 translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                           <div className="p-3 bg-gray-900 text-white rounded-2xl shadow-xl">
+                              <ShoppingCart size={18} />
+                           </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Contenu */}
-                    <div className="p-5 flex flex-col flex-1">
-                      
-                      {/* Titre */}
-                      <h2 className="text-sm md:text-base font-bold text-gray-800 dark:text-gray-100 line-clamp-2 leading-snug mb-3 group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors">
+                    <div className="p-6 flex flex-col flex-1">
+                      <h2 className="text-xs md:text-sm font-black text-gray-800 dark:text-gray-100 line-clamp-2 uppercase tracking-tight mb-4 group-hover:text-orange-500 transition-colors">
                         {p.name}
                       </h2>
                       
-                      <div className="mt-auto space-y-4">
-                        {/* Prix */}
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                            {p.price.toLocaleString()}
-                          </span>
-                          <span className="text-xs font-bold text-gray-400 dark:text-gray-500">FCFA</span>
+                      <div className="mt-auto space-y-5">
+                        <div className="text-xl md:text-2xl font-black text-gray-900 dark:text-white italic tracking-tighter">
+                          {currencyFormatter.format(p.price)}
                         </div>
 
-                        {/* Barre de Stock */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wide">
-                            <span className={isOutOfStock ? "text-red-500" : lowStock ? "text-orange-500" : "text-green-600 dark:text-green-400"}>
-                              {isOutOfStock ? "Indisponible" : lowStock ? "Vite !" : "En stock"}
+                        {/* Barre de Stock Prestige */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-[0.1em]">
+                            <span className={isOutOfStock ? "text-rose-500" : lowStock ? "text-orange-500" : "text-emerald-500"}>
+                              {isOutOfStock ? "Rupture de flux" : lowStock ? "Stock Critique" : "Disponible"}
                             </span>
-                            {!isOutOfStock && (
-                              <span className="text-gray-400 dark:text-gray-600 font-mono">{p.stock} pces</span>
-                            )}
+                            {!isOutOfStock && <span className="text-gray-400 font-mono">{realStock} U.</span>}
                           </div>
-                          
-                          <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                             {!isOutOfStock && (
-                               <div 
-                                 className={`h-full rounded-full transition-all duration-1000 ease-out ${
-                                   lowStock ? 'bg-gradient-to-r from-orange-400 to-red-500' : 'bg-gradient-to-r from-green-400 to-emerald-600'
-                                 }`}
-                                 style={{ width: `${stockPercent}%` }}
-                               />
-                             )}
+                          <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            {!isOutOfStock && (
+                              <div 
+                                className={`h-full rounded-full transition-all duration-1000 ${lowStock ? 'bg-orange-500' : 'bg-emerald-500'}`}
+                                style={{ width: `${Math.min((realStock / 15) * 100, 100)}%` }}
+                              />
+                            )}
                           </div>
                         </div>
                       </div>
@@ -225,45 +218,32 @@ export default async function ShopPage({ searchParams }) {
               })}
             </div>
           ) : (
-            // État Vide
-            <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-              <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-full mb-6">
-                <PackageOpen size={48} className="text-gray-400 dark:text-gray-500" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Aucun produit trouvé</h3>
-              <p className="text-gray-500 dark:text-gray-400 max-w-sm mb-8">
-                Nous n'avons pas trouvé ce que vous cherchez. Essayez une autre catégorie ou un autre terme.
-              </p>
-              <Link 
-                href="/shop" 
-                className="
-                  px-8 py-3 rounded-xl
-                  bg-gray-900 dark:bg-white 
-                  text-white dark:text-gray-900 
-                  font-bold text-sm hover:scale-105 transition-transform
-                "
-              >
-                Tout effacer
+            <div className="flex flex-col items-center justify-center py-32 text-center bg-white dark:bg-gray-900 rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-800">
+              <PackageOpen size={64} className="text-gray-200 dark:text-gray-800 mb-6" />
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase italic">Aucun résultat</h3>
+              <p className="text-gray-400 text-sm mt-2 mb-10">L'inventaire ne contient pas cette référence.</p>
+              <Link href="/shop" className="px-10 py-4 bg-orange-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-gray-900 transition-colors">
+                Réinitialiser les filtres
               </Link>
             </div>
           )}
 
-          {/* --- PAGINATION STYLISÉE --- */}
+          {/* --- PAGINATION --- */}
           {totalPages > 1 && (
-            <div className="mt-16 flex justify-center items-center gap-3">
+            <div className="mt-20 flex justify-center items-center gap-4">
               {Array.from({ length: totalPages }).map((_, i) => (
                 <Link
                   key={i}
                   href={`/shop?page=${i + 1}${search ? `&search=${search}` : ""}${category ? `&category=${category}` : ""}`}
                   className={`
-                    w-12 h-12 flex items-center justify-center rounded-xl font-bold text-sm transition-all duration-300
+                    w-12 h-12 flex items-center justify-center rounded-2xl font-black text-xs transition-all
                     ${page === i + 1 
-                      ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg shadow-orange-500/30 scale-110" 
-                      : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-orange-400 dark:hover:border-orange-400 hover:text-orange-500"
+                      ? "bg-orange-500 text-white shadow-xl shadow-orange-500/40 scale-110" 
+                      : "bg-white dark:bg-gray-900 text-gray-400 hover:text-orange-500 border border-gray-100 dark:border-gray-800"
                     }
                   `}
                 >
-                  {i + 1}
+                  {String(i + 1).padStart(2, '0')}
                 </Link>
               ))}
             </div>

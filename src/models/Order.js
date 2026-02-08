@@ -28,18 +28,41 @@ const OrderSchema = new mongoose.Schema(
     deliveryAddress: { type: String, default: "" },
     contactPhone: { type: String, default: "" },
 
+    // --- NOUVEAUX CHAMPS POUR GÉRER LE RETRAIT ET LE PAIEMENT ---
+    deliveryMethod: {
+      type: String,
+      enum: ["LIVRAISON", "RETRAIT"], // Le client choisit ici
+      default: "LIVRAISON",
+      required: true
+    },
+
+    paymentProofUrl: { 
+      type: String, 
+      default: null // L'URL de la capture d'écran uploadée par le client
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ["EN_ATTENTE", "VALIDE", "REJETE", "NON_REQUIS"], 
+      // EN_ATTENTE : Le client a uploadé la preuve, l'admin doit vérifier
+      // VALIDE : L'admin a confirmé que l'argent est reçu
+      // NON_REQUIS : Pour le paiement à la livraison classique
+      default: "NON_REQUIS"
+    },
+    // ------------------------------------------------------------
+
     status: {
       type: String,
       enum: [
         "EFFECTUER",
         "EN_COURS_DE_LIVRAISON",
         "LIVRER",
-        "ANNULER"
+        "ANNULER",
+        "PRET_POUR_RETRAIT" // Optionnel : Utile si vous voulez signaler que le colis est prêt en boutique
       ],
       default: "EFFECTUER",
       index: true
     },
-
 
     cancelReason: { type: String, default: null },
     canceledAt: { type: Date, default: null },

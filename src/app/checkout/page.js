@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useCartStore } from "@/store/cart";
+import { createOrder } from "@/lib/actions/order";
 import { 
   ShoppingCart, 
   User, 
@@ -19,7 +20,10 @@ import {
   ShieldCheck,
   Lock,
   CreditCard,
-  ChevronRight
+  ChevronRight,
+  Store,   // Icône Boutique
+  Truck,   // Icône Camion
+  Upload   // Icône Upload
 } from "lucide-react";
 
 export default function CheckoutPage() {
@@ -38,6 +42,11 @@ export default function CheckoutPage() {
     [items]
   );
 
+  // --- NOUVEAUX ÉTATS ---
+  const [deliveryMethod, setDeliveryMethod] = useState("LIVRAISON"); // "LIVRAISON" ou "RETRAIT"
+  const [paymentProof, setPaymentProof] = useState(null); // Le fichier image
+  // ----------------------
+
   const [guestMode, setGuestMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -52,56 +61,82 @@ export default function CheckoutPage() {
 
   const isLoggedIn = !!session?.user;
 
-  async function createOrder(payload) {
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+  // Modifié pour accepter FormData (fichier) ou JSON
+  // async function createOrder(payload, isFormData = false) {
+  //   const headers = isFormData ? {} : { "Content-Type": "application/json" };
+  //   const body = isFormData ? payload : JSON.stringify(payload);
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "Commande échouée");
-    return data;
-  }
+  //   const res = await fetch("/api/orders", {
+  //     method: "POST",
+  //     credentials: "include",
+  //     headers: headers,
+  //     body: body
+  //   });
 
-  // --- LOGIQUE DE SOUMISSION (Identique, juste refactorisée pour propreté) ---
+  //   const data = await res.json().catch(() => ({}));
+  //   if (!res.ok) throw new Error(data.error || "Commande échouée");
+  //   return data;
+  // }
+
+  // --- LOGIQUE DE SOUMISSION MISE À JOUR ---
   const handleSubmit = async (e, type) => {
     e.preventDefault();
     if (!acceptTerms) {
       setErr("Veuillez accepter les conditions générales de vente.");
       return;
     }
+
+    // Validation spécifique au retrait
+    if (deliveryMethod === "RETRAIT" && !paymentProof) {
+        setErr("Veuillez uploader la preuve de paiement pour le retrait en boutique.");
+        return;
+    }
+
     setErr("");
     setLoading(true);
 
     try {
-      let payload = {};
+      // On utilise FormData pour gérer l'upload d'image
+      const formData = new FormData();
       
       const commonItems = items.map((i) => ({
           productId: i.productId,
-          quantity: i.quantity
+          quantity: i.quantity,
+          name: i.name,
+          price: i.price
       }));
 
-      if (type === 'guest') {
-         if (!guest.name || !guest.email || !guest.phone || !guest.deliveryAddress) {
-            throw new Error("Tous les champs sont obligatoires.");
-         }
-         payload = {
-            items: commonItems,
-            deliveryAddress: guest.deliveryAddress,
-            contactPhone: guest.phone,
-            guest
-         };
-      } else {
-         payload = {
-            items: commonItems,
-            deliveryAddress: "Adresse enregistrée",
-            contactPhone: session.user.phone || "Non renseigné"
-         };
+      // Ajout des données de base
+      formData.append("items", JSON.stringify(commonItems));
+      formData.append("deliveryMethod", deliveryMethod);
+      
+      // Ajout de la preuve de paiement si retrait
+      if (deliveryMethod === "RETRAIT" && paymentProof) {
+          formData.append("paymentProof", paymentProof);
       }
 
-      const data = await createOrder(payload);
+      if (type === 'guest') {
+         if (!guest.name || !guest.email || !guest.phone) {
+            throw new Error("Nom, Email et Téléphone sont obligatoires.");
+         }
+         // L'adresse n'est obligatoire que si c'est une livraison
+         if (deliveryMethod === "LIVRAISON" && !guest.deliveryAddress) {
+            throw new Error("L'adresse de livraison est obligatoire.");
+         }
+
+         formData.append("guest", JSON.stringify(guest));
+         formData.append("deliveryAddress", deliveryMethod === "LIVRAISON" ? guest.deliveryAddress : "Retrait Boutique");
+         formData.append("contactPhone", guest.phone);
+
+      } else {
+         // Mode Connecté
+         formData.append("deliveryAddress", deliveryMethod === "LIVRAISON" ? "Adresse enregistrée" : "Retrait Boutique");
+         formData.append("contactPhone", session.user.phone || "Non renseigné");
+      }
+
+      // Envoi en tant que FormData (isFormData = true)
+      const data = await createOrder(formData, true);
+      
       clear();
       router.push(`/order/success?code=${data.orderCode}`);
     } catch (e) {
@@ -111,7 +146,69 @@ export default function CheckoutPage() {
     }
   };
 
-  // --- COMPOSANT CHECKBOX CGV STYLISÉ ---
+  // --- COMPOSANT TOGGLE LIVRAISON / RETRAIT ---
+  const DeliveryMethodSelector = () => (
+    <div className="grid grid-cols-2 gap-4 mb-6">
+        <button
+            type="button"
+            onClick={() => setDeliveryMethod("LIVRAISON")}
+            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
+                deliveryMethod === "LIVRAISON"
+                ? "border-orange-500 bg-orange-50 text-orange-700 shadow-md"
+                : "border-gray-200 bg-white hover:border-gray-300 text-gray-500"
+            }`}
+        >
+            <Truck size={24} />
+            <span className="font-bold text-sm">Livraison</span>
+        </button>
+
+        <button
+            type="button"
+            onClick={() => setDeliveryMethod("RETRAIT")}
+            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
+                deliveryMethod === "RETRAIT"
+                ? "border-green-500 bg-green-50 text-green-700 shadow-md"
+                : "border-gray-200 bg-white hover:border-gray-300 text-gray-500"
+            }`}
+        >
+            <Store size={24} />
+            <span className="font-bold text-sm">Retrait Boutique</span>
+        </button>
+    </div>
+  );
+
+  // --- COMPOSANT UPLOAD PREUVE PAIEMENT ---
+  const PaymentProofUploader = () => (
+    <div className="space-y-4 mb-6 animate-in fade-in zoom-in duration-300">
+        <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-sm text-blue-800">
+            <p className="font-bold mb-2">Instructions pour le Retrait :</p>
+            <p>1. Effectuez le paiement du total ({totalPrice.toLocaleString()} FCFA) via :</p>
+            <ul className="list-disc list-inside mt-1 ml-2 font-mono font-bold">
+                <li>MTN Money ou Wave : 05 03 11 74 54</li>
+            </ul>
+            <p className="mt-2">2. Faites une capture d'écran du reçu.</p>
+            <p>3. Uploadez la capture ci-dessous pour valider la commande.</p>
+        </div>
+
+        <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-green-500 transition-colors bg-white cursor-pointer relative">
+            <input 
+                type="file" 
+                accept="image/*"
+                onChange={(e) => setPaymentProof(e.target.files[0])}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <div className="flex flex-col items-center gap-2 pointer-events-none">
+                <Upload className={`w-8 h-8 ${paymentProof ? 'text-green-500' : 'text-gray-400'}`} />
+                <span className="text-sm font-bold text-gray-700">
+                    {paymentProof ? paymentProof.name : "Cliquez pour uploader la capture"}
+                </span>
+                <span className="text-xs text-gray-400">JPG, PNG, PDF acceptés</span>
+            </div>
+        </div>
+    </div>
+  );
+
+  // --- COMPOSANT CHECKBOX CGV (Inchangé) ---
   const TermsCheckbox = () => (
     <div className="group flex items-start gap-3 my-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700 transition-all hover:border-gray-300 dark:hover:border-gray-600">
       <div className="relative flex items-center h-5 mt-0.5">
@@ -168,23 +265,35 @@ export default function CheckoutPage() {
                 // --- MODE CONNECTÉ ---
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 rounded-2xl p-6 mb-8">
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300 rounded-full flex items-center justify-center shrink-0">
-                           <User className="w-6 h-6" />
-                        </div>
-                        <div>
-                           <p className="text-sm text-green-800 dark:text-green-300 font-medium">Connecté en tant que</p>
-                           <p className="text-lg font-bold text-gray-900 dark:text-white">{session.user.name || session.user.email}</p>
-                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{session.user.email}</p>
-                        </div>
-                     </div>
+                      <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300 rounded-full flex items-center justify-center shrink-0">
+                            <User className="w-6 h-6" />
+                         </div>
+                         <div>
+                            <p className="text-sm text-green-800 dark:text-green-300 font-medium">Connecté en tant que</p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">{session.user.name || session.user.email}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{session.user.email}</p>
+                         </div>
+                      </div>
                   </div>
+
+                  {/* SÉLECTEUR DE MÉTHODE DE LIVRAISON */}
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Mode de réception</h3>
+                  <DeliveryMethodSelector />
+
+                  {/* ZONE D'UPLOAD SI RETRAIT */}
+                  {deliveryMethod === "RETRAIT" && <PaymentProofUploader />}
 
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Confirmation</h3>
                   <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
                     Votre commande sera traitée avec les informations de votre compte. 
                     Vous recevrez une confirmation par email.
                   </p>
+
+                  <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-sm text-blue-800">
+                      <p className="font-bold mb-2">Les frais de livraison sont indépendants du montant total de la commande.</p>
+                      <p className="font-bold mb-2">Ces frais sont à la charge du client et lui seront communiqués au moment de la livraison.</p>
+                  </div>
 
                   <TermsCheckbox />
 
@@ -208,7 +317,7 @@ export default function CheckoutPage() {
                     "
                   >
                     {loading ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
-                    {loading ? "Traitement..." : "Confirmer la commande"}
+                    {loading ? "Traitement..." : deliveryMethod === "RETRAIT" ? "Envoyer Preuve & Commander" : "Confirmer la commande"}
                   </button>
                 </div>
 
@@ -266,81 +375,95 @@ export default function CheckoutPage() {
                     // FORMULAIRE INVITÉ
                     <div>
                       <div className="flex items-center justify-between mb-8">
-                         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Coordonnées</h2>
-                         <button onClick={() => setGuestMode(false)} className="text-sm font-bold text-green-600 hover:underline">
+                          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Coordonnées</h2>
+                          <button onClick={() => setGuestMode(false)} className="text-sm font-bold text-green-600 hover:underline">
                             Changer
-                         </button>
+                          </button>
                       </div>
 
                       <form onSubmit={(e) => handleSubmit(e, 'guest')} className="space-y-5">
-                         
-                         {/* Input Group: Nom */}
-                         <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                               <User className="h-5 w-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+                          
+                          {/* SÉLECTEUR DE MÉTHODE DE LIVRAISON */}
+                          <DeliveryMethodSelector />
+
+                          {/* ZONE D'UPLOAD SI RETRAIT */}
+                          {deliveryMethod === "RETRAIT" && <PaymentProofUploader />}
+
+                          {/* Input Group: Nom */}
+                          <div className="relative group">
+                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <User className="h-5 w-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+                             </div>
+                             
+                             <input
+                               required
+                               placeholder="Nom complet"
+                               className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-green-500 rounded-xl outline-none font-medium text-gray-900 dark:text-white transition-all placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900"
+                               value={guest.name}
+                               onChange={(e) => setGuest({ ...guest, name: e.target.value })}
+                             />
+                          </div>
+
+                          {/* Input Group: Email */}
+                          <div className="relative group">
+                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+                             </div>
+                             <input
+                               required
+                               type="email"
+                               placeholder="Adresse email"
+                               className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-green-500 rounded-xl outline-none font-medium text-gray-900 dark:text-white transition-all placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900"
+                               value={guest.email}
+                               onChange={(e) => setGuest({ ...guest, email: e.target.value })}
+                             />
+                          </div>
+
+                          {/* Input Group: Téléphone */}
+                          <div className="relative group">
+                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Phone className="h-5 w-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+                             </div>
+                             <input
+                               required
+                               type="tel"
+                               placeholder="Numéro de téléphone"
+                               className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-green-500 rounded-xl outline-none font-medium text-gray-900 dark:text-white transition-all placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900"
+                               value={guest.phone}
+                               onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
+                             />
+                          </div>
+
+                          {/* Input Group: Adresse (SEULEMENT SI LIVRAISON) */}
+                          {deliveryMethod === "LIVRAISON" && (
+                            <div className="relative group animate-in fade-in slide-in-from-top-2">
+                                <div className="absolute top-4 left-4 pointer-events-none">
+                                    <Home className="h-5 w-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+                                </div>
+                                <textarea
+                                    required
+                                    placeholder="Adresse de livraison complète (Quartier, Ville, Repères...)"
+                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-green-500 rounded-xl outline-none font-medium text-gray-900 dark:text-white transition-all placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 min-h-[120px] resize-none"
+                                    value={guest.deliveryAddress}
+                                    onChange={(e) => setGuest({ ...guest, deliveryAddress: e.target.value })}
+                                />
                             </div>
-                            <input
-                              required
-                              placeholder="Nom complet"
-                              className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-green-500 rounded-xl outline-none font-medium text-gray-900 dark:text-white transition-all placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900"
-                              value={guest.name}
-                              onChange={(e) => setGuest({ ...guest, name: e.target.value })}
-                            />
-                         </div>
+                          )}
 
-                         {/* Input Group: Email */}
-                         <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                               <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
-                            </div>
-                            <input
-                              required
-                              type="email"
-                              placeholder="Adresse email"
-                              className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-green-500 rounded-xl outline-none font-medium text-gray-900 dark:text-white transition-all placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900"
-                              value={guest.email}
-                              onChange={(e) => setGuest({ ...guest, email: e.target.value })}
-                            />
-                         </div>
+                          <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-sm text-blue-800">
+                              <p className="font-bold mb-2">Les frais de livraison sont indépendants du montant total de la commande.</p>
+                              <p className="font-bold mb-2">Ces frais sont à la charge du client et lui seront communiqués au moment de la livraison.</p>
+                          </div>
 
-                         {/* Input Group: Téléphone */}
-                         <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                               <Phone className="h-5 w-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
-                            </div>
-                            <input
-                              required
-                              type="tel"
-                              placeholder="Numéro de téléphone"
-                              className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-green-500 rounded-xl outline-none font-medium text-gray-900 dark:text-white transition-all placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900"
-                              value={guest.phone}
-                              onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
-                            />
-                         </div>
+                          <TermsCheckbox />
 
-                         {/* Input Group: Adresse */}
-                         <div className="relative group">
-                            <div className="absolute top-4 left-4 pointer-events-none">
-                               <Home className="h-5 w-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
-                            </div>
-                            <textarea
-                              required
-                              placeholder="Adresse de livraison complète (Quartier, Ville, Repères...)"
-                              className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-green-500 rounded-xl outline-none font-medium text-gray-900 dark:text-white transition-all placeholder-gray-400 focus:bg-white dark:focus:bg-gray-900 min-h-[120px] resize-none"
-                              value={guest.deliveryAddress}
-                              onChange={(e) => setGuest({ ...guest, deliveryAddress: e.target.value })}
-                            />
-                         </div>
-
-                         <TermsCheckbox />
-
-                         {err && (
+                          {err && (
                            <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/30 flex items-center gap-3">
                               <ShieldCheck size={18} /> {err}
                            </div>
-                         )}
+                          )}
 
-                         <button
+                          <button
                            type="submit"
                            disabled={loading || !acceptTerms}
                            className="
@@ -351,10 +474,10 @@ export default function CheckoutPage() {
                              transition-all disabled:opacity-50
                              flex items-center justify-center gap-2
                            "
-                         >
-                           {loading ? "Validation..." : "Payer la commande"}
+                          >
+                           {loading ? "Validation..." : deliveryMethod === "RETRAIT" ? "Payer" : "Payer à la livraison"}
                            {!loading && <CreditCard size={20} />}
-                         </button>
+                          </button>
 
                       </form>
                     </div>
@@ -402,8 +525,14 @@ export default function CheckoutPage() {
                     <span>{totalPrice.toLocaleString()} FCFA</span>
                  </div>
                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>Livraison</span>
-                    <span className="text-green-600 dark:text-green-400 font-bold">À calculer</span>
+                    <span>Mode</span>
+                    <span className="font-bold">{deliveryMethod === "LIVRAISON" ? "Livraison Standard" : "Retrait Boutique"}</span>
+                 </div>
+                 <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                    <span>Frais</span>
+                    <span className="text-green-600 dark:text-green-400 font-bold">
+                        {deliveryMethod === "RETRAIT" ? "Gratuit" : "À calculer"}
+                    </span>
                  </div>
               </div>
 

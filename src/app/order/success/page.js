@@ -1,20 +1,42 @@
 import Link from "next/link";
+import { connectDB } from "@/lib/db";
+import { Order } from "@/models/Order";
 import { 
   CheckCircle2, 
   ArrowRight, 
-  Package, 
   Search, 
   ShoppingBag, 
   Home, 
   MailCheck, 
-  Truck 
+  Truck,
+  Store,  // Nouvelle icône
+  Clock   // Nouvelle icône
 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default async function OrderSuccessPage({ searchParams }) {
   const params = await searchParams; // Next 15+
   const code = params.code || "";
-  const email = params.email || "";
+
+  // --- 1. RÉCUPÉRATION DES DONNÉES RÉELLES ---
+  await connectDB();
+  const order = await Order.findOne({ orderCode: code }).lean();
+
+  // Si l'utilisateur arrive ici sans code valide, on gère proprement
+  if (!order) {
+     return (
+        <DashboardLayout>
+            <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
+                <h1 className="text-2xl font-bold">Commande introuvable</h1>
+                <Link href="/shop" className="text-green-600 underline mt-4">Retour à la boutique</Link>
+            </div>
+        </DashboardLayout>
+     );
+  }
+
+  // --- 2. LOGIQUE D'AFFICHAGE (Retrait vs Livraison) ---
+  const isPickup = order.deliveryMethod === "RETRAIT";
+  const email = order.guest?.email || params.email || "votre email";
 
   return (
     <DashboardLayout>
@@ -41,10 +63,13 @@ export default async function OrderSuccessPage({ searchParams }) {
             {/* TITRE & SOUS-TITRE */}
             <div className="space-y-3 mb-10">
               <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
-                C'est en route ! 🎉
+                {isPickup ? "Preuve Reçue ! 🎉" : "C'est en route ! 🎉"}
               </h1>
               <p className="text-gray-500 dark:text-gray-400 text-lg max-w-md mx-auto">
-                Merci pour votre confiance. Votre commande a été enregistrée et nos équipes s'en occupent déjà.
+                {isPickup 
+                    ? "Votre preuve de paiement a bien été transmise. Nos équipes procèdent à la vérification."
+                    : "Merci pour votre confiance. Votre commande a été enregistrée et nos équipes s'en occupent déjà."
+                }
               </p>
             </div>
 
@@ -56,35 +81,50 @@ export default async function OrderSuccessPage({ searchParams }) {
               <p className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-3">
                 Référence de commande
               </p>
-              <div className="text-3xl md:text-4xl font-mono font-black text-orange-500 tracking-tighter">
-                {code || "ME-XXXXXX"}
+              <div className="text-3xl md:text-4xl font-mono font-black text-orange-500 tracking-tighter select-all">
+                {order.orderCode}
               </div>
             </div>
 
-            {/* NEXT STEPS / INFO */}
+            {/* NEXT STEPS / INFO (DYNAMIQUE) */}
             <div className="grid md:grid-cols-2 gap-4 mb-10 text-left">
+              
+              {/* Bloc 1 : Email */}
               <div className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-800/30 rounded-2xl border border-gray-100 dark:border-gray-700">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg shrink-0">
                   <MailCheck size={20} />
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Un email de confirmation vient de vous être envoyé avec votre facture.
-                </p>
-              </div>
-              <div className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-800/30 rounded-2xl border border-gray-100 dark:border-gray-700">
-                <div className="p-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg shrink-0">
-                  <Truck size={20} />
+                <div>
+                    <h4 className="font-bold text-gray-900 dark:text-white text-sm mb-1">Confirmation envoyée</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Un reçu détaillé a été envoyé à <strong>{email}</strong>.
+                    </p>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Notre équipe de livraison vous contactera dès que votre colis sera prêt.
-                </p>
+              </div>
+
+              {/* Bloc 2 : Logistique (Change selon le mode) */}
+              <div className={`flex items-start gap-4 p-4 rounded-2xl border ${isPickup ? 'bg-purple-50 dark:bg-purple-900/10 border-purple-100 dark:border-purple-900/30' : 'bg-gray-50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-700'}`}>
+                <div className={`p-2 rounded-lg shrink-0 ${isPickup ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'}`}>
+                  {isPickup ? <Store size={20} /> : <Truck size={20} />}
+                </div>
+                <div>
+                    <h4 className={`font-bold text-sm mb-1 ${isPickup ? 'text-purple-900 dark:text-purple-300' : 'text-gray-900 dark:text-white'}`}>
+                        {isPickup ? "Retrait en Boutique" : "Livraison Standard"}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    {isPickup 
+                        ? "Attendez la validation de votre paiement (SMS/Mail) avant de passer récupérer le colis."
+                        : "Notre livreur vous contactera au numéro fourni dès que le colis est prêt."
+                    }
+                    </p>
+                </div>
               </div>
             </div>
 
             {/* ACTIONS */}
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
               <Link
-                href={`/order/track${code ? `?code=${encodeURIComponent(code)}` : ""}${email ? `&email=${encodeURIComponent(email)}` : ""}`}
+                href={`/order/track?code=${encodeURIComponent(order.orderCode)}`}
                 className="w-full md:w-auto px-8 py-4 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold flex items-center justify-center gap-2 hover:bg-orange-600 dark:hover:bg-gray-200 hover:text-white transition-all transform hover:scale-[1.02] shadow-xl"
               >
                 <Search size={18} />

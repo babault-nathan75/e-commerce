@@ -75,6 +75,20 @@ export default function HomePage() {
           >
             📚 Explorer la librairie chrétienne
           </Link>
+
+          <Link
+            href="/gastronomie"
+            className="
+              group inline-flex items-center justify-center px-8 py-4 rounded-xl
+              bg-gradient-to-r from-green-600 to-emerald-500
+              text-white font-bold text-lg
+              shadow-lg transition-all duration-300
+              hover:scale-105
+            "
+            >
+            🍽️ Commander ou réserver
+          </Link>
+
         </div>
 
         {/* --- FEATURES GRID --- */}

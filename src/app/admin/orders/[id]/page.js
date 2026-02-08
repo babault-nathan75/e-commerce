@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db";
 import { Order } from "@/models/Order";
 import { User } from "@/models/User";
 import OrderStatusBox from "./ui/OrderStatusBox";
+import PaymentVerificationControl from "@/components/admin/PaymentVerificationControl"; 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { 
   ArrowLeft, 
@@ -13,10 +14,9 @@ import {
   CreditCard, 
   AlertCircle,
   Clock,
-  Printer,
   Copy,
-  ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Store 
 } from "lucide-react";
 import Link from "next/link";
 
@@ -31,7 +31,7 @@ export default async function AdminOrderDetailsPage({ params }) {
       <DashboardLayout>
         <div className="py-20 text-center flex flex-col items-center">
           <div className="p-6 bg-red-50 rounded-full mb-4">
-             <AlertCircle size={48} className="text-red-500" />
+              <AlertCircle size={48} className="text-red-500" />
           </div>
           <h2 className="text-2xl font-black text-gray-900">Commande Introuvable</h2>
           <Link href="/admin/orders" className="mt-4 text-orange-500 font-bold hover:underline">
@@ -51,7 +51,12 @@ export default async function AdminOrderDetailsPage({ params }) {
   const displayName = isGuest ? order.guest?.name : (user?.name || order.name || "Utilisateur");
   const displayEmail = isGuest ? order.guest?.email : (user?.email || order.email || "");
   const displayPhone = isGuest ? order.guest?.phone : (user?.phone || order.contactPhone || "");
-  const displayAddress = isGuest ? order.guest?.deliveryAddress : (order.deliveryAddress || "");
+  
+  // --- LOGIQUE D'AFFICHAGE DE L'ADRESSE ---
+  const isPickup = order.deliveryMethod === "RETRAIT";
+  const displayAddress = isPickup 
+    ? "RETRAIT EN BOUTIQUE (Pas de livraison)" 
+    : (isGuest ? order.guest?.deliveryAddress : (order.deliveryAddress || "Adresse non fournie"));
 
   return (
     <DashboardLayout>
@@ -75,8 +80,8 @@ export default async function AdminOrderDetailsPage({ params }) {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-black text-orange-600 bg-orange-100 px-3 py-1 rounded-full uppercase tracking-[0.2em]">
-                   Details de la commande
+                <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] ${isPickup ? "bg-purple-100 text-purple-600" : "bg-orange-100 text-orange-600"}`}>
+                   {isPickup ? "Commande à Retirer" : "Commande en Livraison"}
                 </span>
                 <span className="text-gray-300 font-light">/</span>
                 <span className="font-mono text-[11px] text-gray-400 select-all">UUID: {order._id.toString()}</span>
@@ -103,14 +108,14 @@ export default async function AdminOrderDetailsPage({ params }) {
             {/* --- SECTION PRINCIPALE (ARTICLES & CLIENT) --- */}
             <div className="lg:col-span-8 space-y-8">
               
-              {/* CARD CLIENT : DATAGRID STYLE */}
+              {/* CARD CLIENT */}
               <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-gray-100 overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                     <UserIcon size={120} />
                 </div>
                 <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10 flex items-center gap-3">
                     <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    Détails du Destinataire
+                    Détails du Client
                 </h3>
                 <div className="grid md:grid-cols-2 gap-12 relative z-10">
                   <div className="space-y-8">
@@ -119,12 +124,18 @@ export default async function AdminOrderDetailsPage({ params }) {
                   </div>
                   <div className="space-y-8">
                     <InfoBlock icon={<Phone size={22}/>} label="Téléphone" value={displayPhone} />
-                    <InfoBlock icon={<MapPin size={22}/>} label="Adresse de livraison" value={displayAddress} isAddress />
+                    <InfoBlock 
+                        icon={isPickup ? <Store size={22}/> : <MapPin size={22}/>} 
+                        label={isPickup ? "Mode de Réception" : "Adresse de livraison"} 
+                        value={displayAddress} 
+                        isAddress={!isPickup} 
+                        isHighlight={isPickup}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* CARD ARTICLES : TABLEAU ÉPURÉ */}
+              {/* CARD ARTICLES */}
               <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between mb-10">
                     <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-3">
@@ -140,7 +151,6 @@ export default async function AdminOrderDetailsPage({ params }) {
                 {order.items.map((it, idx) => (
                   <div key={idx} className="group flex items-center justify-between p-4 rounded-3xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100">
                     <div className="flex items-center gap-6">
-                      {/* CONTAINER IMAGE */}
                       <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900 rounded-2xl flex items-center justify-center overflow-hidden p-2 group-hover:bg-white transition-colors shadow-inner border border-gray-100">
                         {it.imageUrl || it.image ? (
                           <img 
@@ -172,7 +182,7 @@ export default async function AdminOrderDetailsPage({ params }) {
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
 
                 {/* TOTAL SUMMARY CARD */}
                 <div className="mt-12 p-10 bg-[#232f3e] rounded-[3rem] text-white flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden shadow-2xl">
@@ -187,7 +197,7 @@ export default async function AdminOrderDetailsPage({ params }) {
                             <ShieldCheck size={16} /> Paiement Sécurisé
                         </div>
                         <p className="text-[11px] font-medium text-white/50 max-w-[200px]">
-                            Le montant inclut la livraison et les taxes applicables.
+                            Le montant inclut les taxes applicables. {isPickup ? "Livraison gratuite (Retrait)." : "Frais de livraison inclus."}
                         </p>
                     </div>
                     <CreditCard className="absolute -right-10 -bottom-10 w-48 h-48 text-white/5 -rotate-12 pointer-events-none" />
@@ -198,14 +208,28 @@ export default async function AdminOrderDetailsPage({ params }) {
             {/* --- SIDEBAR : LOGISTIQUE & STATUTS --- */}
             <div className="lg:col-span-4 space-y-8">
               
-              <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-100">
-                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-8">Processus Logistique</h3>
-                <OrderStatusBox
-                  orderId={order._id.toString()}
-                  status={order.status}
-                  canceledAt={order.canceledAt}
-                />
-              </div>
+              {/* BOX DE VÉRIFICATION PAIEMENT (Si Retrait) */}
+              {isPickup && (
+                  <PaymentVerificationControl 
+                    orderId={order._id.toString()}
+                    proofUrl={order.paymentProofUrl}
+                    status={order.paymentStatus || "NON_REQUIS"}
+                  />
+              )}
+
+              {/* MASQUER LA LOGISTIQUE SI C'EST UN RETRAIT 
+                On n'affiche cette boîte que si !isPickup (si c'est une livraison)
+              */}
+              {!isPickup && (
+                  <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-100">
+                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-8">Processus Logistique</h3>
+                    <OrderStatusBox
+                      orderId={order._id.toString()}
+                      status={order.status}
+                      canceledAt={order.canceledAt}
+                    />
+                  </div>
+              )}
 
               {/* RAPPEL ANNULATION */}
               {order.canceledAt && (
@@ -225,9 +249,9 @@ export default async function AdminOrderDetailsPage({ params }) {
               <div className="bg-gray-900 rounded-[2.5rem] p-8 text-white shadow-2xl">
                 <h4 className="font-black uppercase text-[10px] tracking-[0.3em] text-white/40 mb-6">Résumé de l'audit</h4>
                 <div className="space-y-4">
-                    <AuditRow label="Mode de paiement" value="À la livraison" light />
+                    <AuditRow label="Mode de paiement" value={isPickup ? "Dépôt Mobile Money (Preuve requise)" : "À la livraison"} light />
                     <AuditRow label="Type de Checkout" value={isGuest ? "Checkout Invité" : "Compte Client"} light />
-                    <AuditRow label="Expédition" value="Standard (Abidjan)" light />
+                    <AuditRow label="Expédition" value={isPickup ? "Retrait en Boutique" : "Livraison Standard"} light />
                 </div>
               </div>
 
@@ -242,15 +266,15 @@ export default async function AdminOrderDetailsPage({ params }) {
 
 /* --- SOUS-COMPOSANTS DE STYLE --- */
 
-function InfoBlock({ icon, label, value, sub, isEmail, isAddress }) {
+function InfoBlock({ icon, label, value, sub, isEmail, isAddress, isHighlight }) {
     return (
         <div className="flex items-start gap-5 group">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-500 transition-all duration-300 shrink-0">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shrink-0 ${isHighlight ? 'bg-purple-50 text-purple-600' : 'bg-gray-50 text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-500'}`}>
                 {icon}
             </div>
             <div>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-                <p className={`font-black text-gray-900 leading-tight ${isEmail ? 'text-sm break-all' : 'text-lg'}`}>
+                <p className={`font-black text-gray-900 leading-tight ${isEmail ? 'text-sm break-all' : 'text-lg'} ${isHighlight ? 'text-purple-700' : ''}`}>
                     {value}
                 </p>
                 {sub && <p className="text-[10px] font-bold text-orange-500 uppercase mt-1 tracking-tighter">{sub}</p>}

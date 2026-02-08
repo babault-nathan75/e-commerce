@@ -7,30 +7,94 @@ import {
   Clock, 
   ChevronRight, 
   ArrowLeft, 
-  LayoutDashboard, 
   ShoppingBag,
   CreditCard,
   Truck,
   UserCircle2,
   Search,
-  X
+  X,
+  Store, // <--- AJOUT POUR ICONE RETRAIT
+  CheckCircle2
 } from "lucide-react";
 
-const statusConfig = {
-  EFFECTUER: { label: "Nouvelle", classes: "bg-blue-50 text-blue-600 border-blue-100", icon: <ShoppingBag size={12} /> },
-  EN_COURS_DE_LIVRAISON: { label: "En livraison", classes: "bg-amber-50 text-amber-600 border-amber-100", icon: <Truck size={12} /> },
-  LIVRER: { label: "Terminée", classes: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: <Package size={12} /> },
-  ANNULER: { label: "Annulée", classes: "bg-rose-50 text-rose-600 border-rose-100", icon: <CreditCard size={12} /> },
+// Fonction utilitaire pour déterminer le style et le label selon le contexte complet
+const getStatusConfig = (order) => {
+    const isPickup = order.deliveryMethod === "RETRAIT";
+
+    // 1. CAS ANNULATION (Priorité absolue)
+    if (order.canceledAt || order.status === "ANNULER") {
+        return { 
+            label: "Annulée", 
+            classes: "bg-rose-50 text-rose-600 border-rose-100", 
+            barColor: "bg-rose-500",
+            icon: <CreditCard size={12} /> 
+        };
+    }
+
+    // 2. CAS TERMINÉ
+    if (order.status === "LIVRER") {
+        if (isPickup) {
+            return { 
+                label: "Retrait Terminé", 
+                classes: "bg-teal-50 text-teal-600 border-teal-100", // Turquoise pour retrait fini
+                barColor: "bg-teal-500",
+                icon: <CheckCircle2 size={12} /> 
+            };
+        }
+        return { 
+            label: "Livraison Terminée", 
+            classes: "bg-emerald-50 text-emerald-600 border-emerald-100", // Vert pour livraison finie
+            barColor: "bg-emerald-500",
+            icon: <Package size={12} /> 
+        };
+    }
+
+    // 3. CAS EN COURS DE LIVRAISON
+    if (order.status === "EN_COURS_DE_LIVRAISON") {
+        return { 
+            label: "En livraison", 
+            classes: "bg-amber-50 text-amber-600 border-amber-100", // Orange
+            barColor: "bg-amber-500",
+            icon: <Truck size={12} /> 
+        };
+    }
+
+    // 4. CAS RETRAIT EN BOUTIQUE (En attente ou Prêt)
+    if (isPickup) {
+        if (order.status === "PRET_POUR_RETRAIT") {
+            return { 
+                label: "Prêt en Boutique", 
+                classes: "bg-purple-100 text-purple-700 border-purple-200", // Violet foncé
+                barColor: "bg-purple-600",
+                icon: <Store size={12} /> 
+            };
+        }
+        // Statut EFFECTUER ou EN_ATTENTE pour retrait
+        return { 
+            label: "Nouveau Retrait", 
+            classes: "bg-purple-50 text-purple-600 border-purple-100", // Violet clair
+            barColor: "bg-purple-500",
+            icon: <Store size={12} /> 
+        };
+    }
+
+    // 5. CAS PAR DÉFAUT (Nouvelle Livraison)
+    return { 
+        label: "Nouvelle Livraison", 
+        classes: "bg-blue-50 text-blue-600 border-blue-100", // Bleu
+        barColor: "bg-blue-500",
+        icon: <ShoppingBag size={12} /> 
+    };
 };
 
 export default async function AdminOrdersPage({ searchParams }) {
   await connectDB();
   
-  // ✅ 1. RÉCUPÉRATION DES FILTRES DE RECHERCHE
+  // ✅ 1. RÉCUPÉRATION DES FILTRES
   const params = await searchParams;
   const query = params.q || "";
 
-  // ✅ 2. CONSTRUCTION DE LA REQUÊTE MONGOOSE
+  // ✅ 2. REQUÊTE
   let filter = {};
   if (query) {
     filter = {
@@ -73,7 +137,7 @@ export default async function AdminOrdersPage({ searchParams }) {
             </p>
           </div>
 
-          {/* ✅ 3. BARRE DE RECHERCHE (Terminal Style) */}
+          {/* BARRE DE RECHERCHE */}
           <form method="GET" action="/admin/orders" className="relative group w-full lg:max-w-md">
             <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-orange-500 transition-colors">
               <Search size={18} />
@@ -97,7 +161,9 @@ export default async function AdminOrdersPage({ searchParams }) {
         <div className="grid gap-6">
           {orders.map((o) => {
             const isGuest = !!o.guest?.email;
-            const currentStatus = o.canceledAt ? statusConfig.ANNULER : (statusConfig[o.status] || statusConfig.EFFECTUER);
+            
+            // 🔥 Calcul dynamique de la configuration visuelle
+            const visualConfig = getStatusConfig(o);
 
             return (
               <Link
@@ -105,12 +171,14 @@ export default async function AdminOrdersPage({ searchParams }) {
                 href={`/admin/orders/${o._id}`}
                 className="group bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 hover:shadow-2xl hover:shadow-gray-200/50 hover:border-orange-200 transition-all duration-500 relative overflow-hidden"
               >
-                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${o.canceledAt ? 'bg-rose-500' : 'bg-orange-500 opacity-0 group-hover:opacity-100'} transition-all`} />
+                {/* Barre de couleur dynamique sur la gauche */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${visualConfig.barColor} transition-all`} />
 
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                   <div className="flex items-start gap-5">
-                    <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center ${currentStatus.classes.split(' ')[0]} ${currentStatus.classes.split(' ')[1]}`}>
-                       {currentStatus.icon}
+                    {/* Icône dynamique avec couleurs */}
+                    <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center ${visualConfig.classes}`}>
+                       {visualConfig.icon}
                     </div>
                     
                     <div className="space-y-1.5">
@@ -118,8 +186,9 @@ export default async function AdminOrdersPage({ searchParams }) {
                         <span className="font-black text-xl text-gray-900 tracking-tighter uppercase font-mono">
                           #{o.orderCode}
                         </span>
-                        <span className={`inline-flex items-center gap-1.5 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border ${currentStatus.classes}`}>
-                          {currentStatus.label}
+                        {/* Label dynamique */}
+                        <span className={`inline-flex items-center gap-1.5 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border ${visualConfig.classes}`}>
+                          {visualConfig.label}
                         </span>
                       </div>
                       
@@ -156,7 +225,7 @@ export default async function AdminOrdersPage({ searchParams }) {
             );
           })}
 
-          {/* ✅ 4. EMPTY STATE AMÉLIORÉ */}
+          {/* EMPTY STATE */}
           {orders.length === 0 && (
             <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-gray-100 flex flex-col items-center">
               <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 mb-6">

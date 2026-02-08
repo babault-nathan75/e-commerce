@@ -162,7 +162,7 @@ export default function OrderTrackPage() {
                       className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-mono text-gray-900 dark:text-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all placeholder-gray-400 uppercase"
                       value={orderCode}
                       onChange={(e) => setOrderCode(e.target.value.toUpperCase())}
-                      placeholder="ME-202X-XXXX"
+                      placeholder="CMD-123456-789"
                     />
                   </div>
                 </div>

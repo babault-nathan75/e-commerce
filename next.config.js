@@ -1,7 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  output: 'standalone',
+  output: 'standalone', // <--- C'EST LA LIGNE IMPORTANTE
+  images: {
+    domains: ['res.cloudinary.com', 'images.unsplash.com'], // Tes images
+  },
+  // ... le reste de ta config
 };
 
-module.exports = nextConfig;
+export default nextConfig;

@@ -59,7 +59,7 @@ export const authOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, req }) {
       if (user) {
         token.id = user.id;
         token.isAdmin = !!user.isAdmin;

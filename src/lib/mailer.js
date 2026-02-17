@@ -170,7 +170,7 @@ export async function sendOrderEmails(order) {
         isPickup: order.deliveryMethod === "RETRAIT"
     };
 
-    const dashboardUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+    const dashboardUrl = process.env.NEXT_PUBLIC_URL || "https://hebronivoireshops.com";
     const adminLink = `${dashboardUrl}/admin/orders/${order._id}`;
     const subjectSuffix = cleanOrder.isPickup ? "RETRAIT BOUTIQUE" : "LIVRAISON";
 

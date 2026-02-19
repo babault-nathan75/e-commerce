@@ -155,47 +155,130 @@ export default function ReservationCheckoutPage({ params }) {
                     </div>
 
                     {/* DÉTAILS TABLE */}
-                    <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black ${lieu === 'hebron' ? 'bg-orange-100 text-orange-600' : 'bg-purple-100 text-purple-600'}`}>1</div>
-                            <h3 className="font-bold text-slate-800 uppercase tracking-widest text-sm">Détails de la Table</h3>
+                    {/* ==========================================
+                        BLOC DÉTAILS DE LA TABLE (DESIGN PREMIUM)
+                        ========================================== */}
+                    <div className="bg-white p-6 md:p-10 rounded-[3rem] border border-slate-100 shadow-2xl space-y-10">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black shadow-lg ${lieu === 'hebron' ? 'bg-orange-500 text-white' : 'bg-purple-600 text-white'}`}>
+                                1
+                            </div>
+                            <div>
+                                <h3 className="font-black text-slate-800 uppercase tracking-tighter text-xl italic">Configuration de la Table</h3>
+                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Étape de planification temporelle</p>
+                            </div>
                         </div>
-                        
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-xs font-black text-slate-500 uppercase">Date <span className="text-red-500">*</span></label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+
+                        <div className="grid lg:grid-cols-2 gap-12">
+                            
+                            {/* --- LE GRAND CALENDRIER --- */}
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <Calendar size={14} className={lieu === 'hebron' ? 'text-orange-500' : 'text-purple-500'} /> 
+                                        Date de Réception
+                                    </label>
+                                    <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${lieu === 'hebron' ? 'bg-orange-50 text-orange-600' : 'bg-purple-50 text-purple-600'}`}>
+                                        {selectedDate ? new Date(selectedDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Sélectionnez un jour'}
+                                    </span>
+                                </div>
+                                
+                                <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100">
+                                    {/* On garde l'input natif invisible pour la soumission du formulaire mais on utilise un calendrier stylisé */}
                                     <input 
                                         type="date" 
                                         name="date" 
                                         required 
                                         min={todayISO}
                                         value={selectedDate}
-                                        onChange={(e) => { setSelectedDate(e.target.value); setError(""); }}
-                                        className="w-full pl-12 p-4 bg-slate-50 rounded-xl font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-200" 
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                        className="w-full p-4 rounded-2xl border-2 border-white bg-white shadow-sm font-bold text-slate-800 outline-none focus:ring-4 focus:ring-slate-100 transition-all cursor-pointer text-center text-lg"
                                     />
+                                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                                        {/* Raccourcis rapides style "Chips" */}
+                                        {[0, 1, 2, 7].map((offset) => {
+                                            const d = new Date();
+                                            d.setDate(d.getDate() + offset);
+                                            const iso = d.toISOString().split('T')[0];
+                                            const label = offset === 0 ? "Aujourd'hui" : offset === 1 ? "Demain" : d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+                                            return (
+                                                <button
+                                                    key={offset}
+                                                    type="button"
+                                                    onClick={() => setSelectedDate(iso)}
+                                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedDate === iso ? (lieu === 'hebron' ? 'bg-orange-500 text-white shadow-orange-200' : 'bg-purple-600 text-white shadow-purple-200') + ' shadow-lg scale-105' : 'bg-white text-slate-400 hover:text-slate-600 border border-slate-100'}`}
+                                                >
+                                                    {label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-black text-slate-500 uppercase">Heure <span className="text-red-500">*</span></label>
-                                <div className="relative">
-                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+
+                            {/* --- L'HORLOGE ANALOGIQUE --- */}
+                            <div className="space-y-6 flex flex-col items-center">
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] self-start flex items-center gap-2">
+                                    <Clock size={14} className={lieu === 'hebron' ? 'text-orange-500' : 'text-purple-500'} /> 
+                                    Heure
+                                </label>
+
+                                <div className="relative group">
+                                    {/* Cadran de l'horloge */}
+                                    <div className="w-56 h-56 rounded-full border-[8px] border-slate-900 bg-white shadow-2xl relative flex items-center justify-center">
+                                        {/* Points des heures */}
+                                        {[...Array(12)].map((_, i) => (
+                                            <div key={i} className="absolute inset-2 text-center" style={{ transform: `rotate(${i * 30}deg)` }}>
+                                                <div className="w-1 h-3 bg-slate-200 mx-auto rounded-full" />
+                                            </div>
+                                        ))}
+                                        
+                                        {/* Aiguille des Heures (Dynamique) */}
+                                        <div 
+                                            className={`absolute w-1.5 h-16 rounded-full bottom-1/2 left-1/2 -translate-x-1/2 origin-bottom transition-all duration-700 ease-out ${lieu === 'hebron' ? 'bg-orange-500' : 'bg-purple-600'}`}
+                                            style={{ transform: `translateX(-50%) rotate(${(parseInt(selectedTime.split(':')[0]) || 0) * 30 + (parseInt(selectedTime.split(':')[1]) || 0) * 0.5}deg)` }}
+                                        />
+                                        
+                                        {/* Aiguille des Minutes (Dynamique) */}
+                                        <div 
+                                            className="absolute w-1 h-20 bg-slate-800 rounded-full bottom-1/2 left-1/2 -translate-x-1/2 origin-bottom transition-all duration-700 ease-out"
+                                            style={{ transform: `translateX(-50%) rotate(${(parseInt(selectedTime.split(':')[1]) || 0) * 6}deg)` }}
+                                        />
+                                        
+                                        {/* Point central */}
+                                        <div className="w-4 h-4 bg-slate-900 rounded-full z-10 border-4 border-white shadow-sm" />
+                                    </div>
+
+                                    {/* Sélecteur de temps stylisé */}
+                                    <div className="mt-8">
+                                        <input 
+                                            type="time" 
+                                            name="timeSlot" 
+                                            required 
+                                            value={selectedTime}
+                                            onChange={(e) => setSelectedTime(e.target.value)}
+                                            className={`text-2xl p-4 rounded-2xl bg-white border-3 border-gray-400 text-black outline-none ring-offset-4 focus:ring-4 ${lieu === 'hebron' ? 'focus:ring-orange-500/20' : 'focus:ring-purple-600/20'}`}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* --- NOMBRE DE PERSONNES (FULL WIDTH) --- */}
+                            <div className="md:col-span-2 pt-6 border-t border-slate-50">
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-4 block">Nombre de convives</label>
+                                <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
+                                    <div className={`p-4 rounded-xl ${lieu === 'hebron' ? 'bg-orange-100 text-orange-600' : 'bg-purple-100 text-purple-600'}`}>
+                                        <Users size={24} />
+                                    </div>
                                     <input 
-                                        type="time" 
-                                        name="timeSlot" 
+                                        type="number" 
+                                        name="guests" 
+                                        min="1" 
+                                        max="50" 
                                         required 
-                                        value={selectedTime}
-                                        onChange={(e) => { setSelectedTime(e.target.value); setError(""); }}
-                                        className="w-full pl-12 p-4 bg-slate-50 rounded-xl font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-200" 
+                                        placeholder="Ex: 4 personnes" 
+                                        className="flex-1 bg-transparent text-xl font-black text-slate-800 outline-none placeholder:text-slate-300" 
                                     />
-                                </div>
-                            </div>
-                            <div className="space-y-2 md:col-span-2">
-                                <label className="text-xs font-black text-slate-500 uppercase">Nombre de personnes <span className="text-red-500">*</span></label>
-                                <div className="relative">
-                                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                    <input type="number" name="guests" min="1" max="50" required placeholder="Ex: 2" className="w-full pl-12 p-4 bg-slate-50 rounded-xl font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-200" />
                                 </div>
                             </div>
                         </div>
@@ -210,7 +293,7 @@ export default function ReservationCheckoutPage({ params }) {
 
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-black text-slate-500 uppercase">Nom complet <span className="text-red-500">*</span></label>
+                                <label className="text-xs font-black text-slate-500 uppercase">Nom & prénom(s) <span className="text-red-500">*</span></label>
                                 <input type="text" name="name" required placeholder="Votre nom" className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none focus:ring-2 focus:ring-slate-200" />
                             </div>
                             <div className="space-y-2">
@@ -226,8 +309,8 @@ export default function ReservationCheckoutPage({ params }) {
                         <div className="bg-slate-900 text-white p-6 rounded-2xl mt-6">
                             <p className="text-xs font-black uppercase tracking-widest opacity-70 mb-4">Envoyez {cartData.cartTotal.toLocaleString('fr-FR')} FCFA à :</p>
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-blue-300">Wave</span> 01 02 03 04 05</div>
-                                <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-orange-300">Orange</span> 05 06 07 08 09</div>
+                                <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-blue-300">Wave</span> 05 03 11 74 54</div>
+                                <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-yellow-300">MTN</span> 05 03 11 74 54</div>
                             </div>
                         </div>
 
@@ -235,6 +318,8 @@ export default function ReservationCheckoutPage({ params }) {
                             <label className="text-xs font-black text-slate-500 uppercase">Preuve de paiement <span className="text-red-500">*</span></label>
                             <input type="file" name="paymentProof" accept="image/*" required className="w-full p-4 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200" />
                         </div>
+                        <label className="text-slate-500">NB: Cliquez sur le carré avec les pointillés</label>
+
                     </div>
 
                     <button 

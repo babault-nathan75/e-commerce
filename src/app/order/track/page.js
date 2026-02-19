@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react"; // Modif : Ajout de Suspense
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -30,7 +30,8 @@ const getStatusStyle = (status) => {
   return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800";
 };
 
-export default function OrderTrackPage() {
+// Modif : On renomme la fonction interne pour pouvoir l'envelopper dans Suspense
+function OrderTrackContent() {
   const sp = useSearchParams();
 
   const [orderCode, setOrderCode] = useState(sp.get("code") || "");
@@ -283,11 +284,11 @@ export default function OrderTrackPage() {
                     <div key={idx} className="flex justify-between items-center py-4 first:pt-0 last:pb-0">
                       <div className="flex items-center gap-3">
                          <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-500">
-                            x{it.quantity}
+                           x{it.quantity}
                          </div>
                          <div>
-                            <p className="font-bold text-gray-900 dark:text-white text-sm">{it.name}</p>
-                            <p className="text-xs text-gray-400">{it.price.toLocaleString()} FCFA / unité</p>
+                           <p className="font-bold text-gray-900 dark:text-white text-sm">{it.name}</p>
+                           <p className="text-xs text-gray-400">{it.price.toLocaleString()} FCFA / unité</p>
                          </div>
                       </div>
                       <div className="font-bold text-gray-900 dark:text-white text-sm">
@@ -351,5 +352,14 @@ export default function OrderTrackPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+// Modif : Export par défaut avec Suspense pour le build Next.js
+export default function OrderTrackPage() {
+  return (
+    <Suspense fallback={null}>
+      <OrderTrackContent />
+    </Suspense>
   );
 }

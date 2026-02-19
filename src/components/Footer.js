@@ -1,18 +1,27 @@
 "use client";
 
 import Link from "next/link";
-// 1. Importation du hook de navigation 👇
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react"; // Ajout de useEffect et useState
 import { Facebook, Instagram, Mail, MapPin, Phone, ArrowRight, Zap, ShieldCheck } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-  
-  // 2. Récupération du chemin URL actuel 👇
   const pathname = usePathname();
+  
+  // 🛡️ ÉTAPE 1 : Sécurité d'hydratation
+  const [mounted, setMounted] = useState(false);
 
-  // 3. Condition : si l'URL contient "/gastronomie", on ne rend rien du tout 👇
-  if (pathname?.includes("/gastronomie")) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 🛡️ ÉTAPE 2 : Si le composant n'est pas encore chargé sur le client, on ne rend rien
+  // Cela évite que le serveur et le client essaient de calculer deux versions différentes du site.
+  if (!mounted) return null;
+
+  // 🛡️ ÉTAPE 3 : Condition de masquage sécurisée
+  if (pathname && pathname.includes("/gastronomie")) {
     return null;
   }
 
@@ -42,7 +51,6 @@ export default function Footer() {
               Terminal d'importation premium. Passerelle entre l'excellence internationale et le savoir-faire ivoirien.
             </p>
             
-            {/* RÉSEAUX SOCIAUX TACTIQUES */}
             <div className="flex items-center gap-3">
               <SocialLink href="#" icon={Facebook} label="FB" />
               <SocialLink href="#" icon={Instagram} label="IG" />
@@ -136,8 +144,7 @@ export default function Footer() {
   );
 }
 
-// --- SOUS-COMPOSANTS POUR LE TERMINAL ---
-
+// --- SOUS-COMPOSANTS ---
 function SectionTitle({ title, color }) {
   return (
     <div className="flex items-center gap-3">
@@ -150,10 +157,7 @@ function SectionTitle({ title, color }) {
 function FooterLink({ href, label }) {
   return (
     <li>
-      <Link 
-        href={href} 
-        className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-orange-500 transition-all duration-300"
-      >
+      <Link href={href} className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-orange-500 transition-all duration-300">
         <ArrowRight size={12} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all text-orange-500" />
         {label}
       </Link>
@@ -163,12 +167,7 @@ function FooterLink({ href, label }) {
 
 function SocialLink({ href, icon: Icon, label }) {
   return (
-    <a 
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex flex-col items-center gap-1 group"
-    >
+    <a href={href} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 group">
       <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 transition-all duration-300 group-hover:bg-orange-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-orange-500/20 group-hover:-translate-y-1">
         <Icon size={18} />
       </div>

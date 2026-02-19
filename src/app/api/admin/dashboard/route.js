@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { Order } from "@/models/Order";
+// ✅ Ajout des imports pour les nouveaux modules
+import { FoodOrder } from "@/models/FoodOrder";
+import { Booking } from "@/models/Booking";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
@@ -21,11 +24,21 @@ export async function GET() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-  /* ---------------- 1. STATISTIQUES GLOBALES ---------------- */
-  const [usersWeek, usersMonth, usersYear] = await Promise.all([
+  /* ---------------- 1. STATISTIQUES GLOBALES & NOTIFICATIONS ---------------- */
+  
+  // On récupère les stats temporelles ET les totaux absolus pour les badges
+  const [
+    usersWeek, usersMonth, usersYear, 
+    totalUsers, totalOrders, totalFood, totalBookings
+  ] = await Promise.all([
     User.countDocuments({ createdAt: { $gte: startOfWeek } }),
     User.countDocuments({ createdAt: { $gte: startOfMonth } }),
     User.countDocuments({ createdAt: { $gte: startOfYear } }),
+    // ✅ Comptes totaux pour le système de badges "déjà vu"
+    User.countDocuments(),
+    Order.countDocuments(),
+    FoodOrder.countDocuments(),
+    Booking.countDocuments(),
   ]);
 
   const [ordersDay, ordersWeek, ordersMonth, ordersYear] = await Promise.all([
@@ -43,7 +56,6 @@ export async function GET() {
 
   /* ---------------- 2. CHARTS : LOGIQUE DE REMPLISSAGE (PERFECTION) ---------------- */
   
-  // Générer les 7 derniers jours pour garantir des données continues
   const last7Days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -51,7 +63,6 @@ export async function GET() {
     last7Days.push(d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
   }
 
-  // REVENUS & INSCRIPTIONS (7 DERNIERS JOURS)
   const dailyStats = await Order.aggregate([
     { $match: { createdAt: { $gte: startOfWeek }, status: "LIVRER" } },
     {
@@ -73,7 +84,6 @@ export async function GET() {
     }
   ]);
 
-  // COMMANDES PAR MOIS (ANNÉE EN COURS)
   const ordersMonthlyAgg = await Order.aggregate([
     { $match: { createdAt: { $gte: startOfYear } } },
     {
@@ -85,7 +95,6 @@ export async function GET() {
     { $sort: { _id: 1 } }
   ]);
 
-  // Mapping des mois pour la beauté des labels
   const monthNames = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
 
   /* ---------------- 3. ASSEMBLAGE FINAL ---------------- */
@@ -94,20 +103,22 @@ export async function GET() {
     users: { week: usersWeek, month: usersMonth, year: usersYear },
     orders: { day: ordersDay, week: ordersWeek, month: ordersMonth, year: ordersYear },
     revenue: totalRevenue,
+    // ✅ Nouvel objet pour piloter tes badges de notifications
+    notifications: {
+      users: totalUsers,
+      orders: totalOrders,
+      gastronomy: totalFood,
+      bookings: totalBookings
+    },
     charts: {
-      // Inscriptions : Mapping pour boucher les trous avec 0
       users: last7Days.map(date => ({
         label: date,
         value: usersDaily.find(u => u._id === date)?.count || 0
       })),
-      
-      // Revenus : Nouveau graphique pour la trésorerie
       revenue: last7Days.map(date => ({
         label: date,
         value: dailyStats.find(s => s._id === date)?.revenue || 0
       })),
-
-      // Commandes : Utilisation des noms de mois
       orders: ordersMonthlyAgg.map(o => ({
         label: monthNames[o._id - 1],
         value: o.count

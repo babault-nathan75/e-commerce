@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation"; // 1. AJOUT: Import du hook
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react"; 
 import { ShoppingCart, User, Shield, Menu } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { useEffect, useState } from "react";
 
-// Fonction utilitaire pour les initiales (inchangée)
 function formatUserName(name) {
   if (!name) return "U";
   const parts = name.trim().split(/\s+/);
@@ -17,16 +16,15 @@ function formatUserName(name) {
 }
 
 export default function Header() {
-  const pathname = usePathname(); // 2. AJOUT: Récupération de l'URL courante
+  const pathname = usePathname();
   const { data: session } = useSession();
   const totalItems = useCartStore((s) => s.totalItems());
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Hydration fix
+  // 1. Hydration fix: On attend que le client soit prêt
   useEffect(() => setMounted(true), []);
 
-  // Effet pour détecter le scroll et ajouter une ombre
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -35,8 +33,13 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 3. AJOUT: Condition pour masquer le Header
-  if (pathname?.startsWith("/gastronomie")) {
+  // 2. ÉTAPE CRUCIALE : Si le composant n'est pas monté, on ne rend rien.
+  // Cela évite l'erreur 500 ou les bugs d'affichage au chargement.
+  if (!mounted) return null;
+
+  // 3. Masquage stratégique (Gastronomie & Admin)
+  // On masque le header sur le tunnel de commande gastronomie et le dashboard admin
+  if (pathname?.startsWith("/gastronomie") || pathname?.startsWith("/admin")) {
     return null;
   }
 
@@ -54,77 +57,43 @@ export default function Header() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           
-          {/* --- LOGO --- */}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="text-xl md:text-2xl font-extrabold tracking-tight ml-11">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500 dark:from-green-400 dark:to-emerald-300 transition-all group-hover:brightness-110">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500 transition-all group-hover:brightness-110">
                 Hebron
               </span>{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500 dark:from-orange-400 dark:to-yellow-300 transition-all group-hover:brightness-110">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500 transition-all group-hover:brightness-110">
                 Ivoire Shops
               </span>
             </div>
           </Link>
 
-          {/* --- ACTIONS --- */}
           <div className="flex items-center gap-3 md:gap-4">
-            
-            {/* PANIER */}
             <Link
               href="/cart"
-              className="
-                relative p-2.5 rounded-full transition-all duration-200
-                text-gray-700 dark:text-gray-300
-                hover:bg-gray-100 dark:hover:bg-gray-800
-                hover:text-orange-600 dark:hover:text-orange-400
-              "
-              aria-label="Voir le panier"
+              className="relative p-2.5 rounded-full transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-orange-600"
             >
               <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
-              {mounted && totalItems > 0 && (
-                <span className="
-                  absolute -top-0.5 -right-0.5 
-                  flex items-center justify-center 
-                  min-w-[20px] h-[20px] px-1 
-                  rounded-full 
-                  bg-gradient-to-r from-red-500 to-orange-500 
-                  text-white text-[10px] font-bold shadow-sm
-                  animate-in zoom-in duration-300
-                ">
+              {totalItems > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[20px] h-[20px] px-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-bold shadow-sm animate-in zoom-in duration-300">
                   {totalItems}
                 </span>
               )}
             </Link>
 
-            {/* SEPARATEUR VISUEL (Desktop seulement) */}
             <div className="hidden md:block h-6 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
 
-            {/* AUTHENTICATION / PROFIL */}
             {session?.user ? (
               <Link
                 href="/profile"
-                className="
-                  group flex items-center gap-3 pl-1 pr-2 py-1 rounded-full
-                  transition-all duration-200
-                  hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent hover:border-gray-200 dark:hover:border-gray-700
-                "
+                className="group flex items-center gap-3 pl-1 pr-2 py-1 rounded-full transition-all duration-200 hover:bg-gray-50 border border-transparent hover:border-gray-200"
               >
-                {/* Avatar Circle */}
-                <div className="
-                  relative w-9 h-9 rounded-full 
-                  bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-800
-                  flex items-center justify-center
-                  border-2 border-white dark:border-gray-900 shadow-sm
-                  group-hover:scale-105 transition-transform
-                ">
-                  <User className="w-4 h-4 text-green-700 dark:text-green-300" />
-                  {/* Status indicator dot */}
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
+                <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center border-2 border-white shadow-sm group-hover:scale-105 transition-transform">
+                  <User className="w-4 h-4 text-green-700" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
                 </div>
-                
-                {/* User Name (Desktop) */}
                 <div className="hidden sm:flex flex-col items-start text-sm">
-                  <span className="font-semibold text-gray-700 dark:text-gray-200 group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">
+                  <span className="font-semibold text-gray-700 transition-colors">
                     {formatUserName(session.user.name)}
                   </span>
                   <span className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Mon Compte</span>
@@ -133,14 +102,7 @@ export default function Header() {
             ) : (
               <Link
                 href="/login"
-                className="
-                  flex items-center gap-2
-                  px-5 py-2.5 rounded-full
-                  bg-gradient-to-r from-green-600 to-emerald-600 
-                  hover:from-green-500 hover:to-emerald-500
-                  text-white text-sm font-semibold shadow-md shadow-green-500/20
-                  transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5
-                "
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm font-semibold shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
               >
                 <User className="w-4 h-4" />
                 <span>Connexion</span>

@@ -9,6 +9,11 @@ const nextConfig = {
     NEXTAUTH_URL: "https://hebronivoireshops.com",
     RESEND_API_KEY: "re_cyG5gXA9_GYeZ2c9mzZbReAk5BnALMwEM",
     EMAIL_SERVER_PASSWORD: "rxli ewkc igjw chwv",
+    EMAIL_SERVER_HOST:smtp.gmail.com,
+    EMAIL_SERVER_PORT:465,
+    EMAIL_SERVER_USER:"hebronivoireshops@gmail.com",
+    EMAIL_FROM:"hebronivoireshops@gmail.com",
+    ADMIN_EMAIL:"hebronivoireshops@gmail.com"
   },
 
   // 2. Gestion moderne des images (Remplace images.domains qui est déprécié)

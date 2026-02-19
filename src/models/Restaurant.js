@@ -26,9 +26,9 @@ const TableBookingSchema = new mongoose.Schema({
   timeSlot: { type: String, required: true }, // "12h-14h", "19h-21h"
   guests: { type: Number, required: true },
   
-  status: { type: String, default: "EN_ATTENTE" }, // EN_ATTENTE, CONFIRME, REFUSE
-  createdAt: { type: Date, default: Date.now }
-});
+  status: { type: String, default: "EN_ATTENTE" }
+}, { timestamps: true }); // Mongoose créera automatiquement 'createdAt' et 'updatedAt'
+
 
 export const MenuItem = mongoose.models.MenuItem || mongoose.model("MenuItem", MenuItemSchema);
 export const TableBooking = mongoose.models.TableBooking || mongoose.model("TableBooking", TableBookingSchema);

@@ -71,8 +71,10 @@ export default function GastronomieHub() {
             </h2>
 
             <div className="space-y-4">
+              {/* LIEN HEBRON */}
               <Link 
-                href={action === 'order' ? "/gastronomie/commande/hebron" : "/gastronomie/reservation/hebron"}
+                /* 👇 MODIFICATION ICI : Si réservation -> go menu */
+                href={action === 'order' ? "/gastronomie/commande/hebron" : "/gastronomie/reservation/menu/hebron"}
                 className="flex items-center justify-between p-6 bg-white text-slate-900 rounded-3xl hover:scale-[1.02] transition-transform"
               >
                 <div className="flex items-center gap-4">
@@ -87,8 +89,10 @@ export default function GastronomieHub() {
                 <ChevronRight className="text-slate-300" />
               </Link>
 
+              {/* LIEN TERESA */}
               <Link 
-                href={action === 'order' ? "/gastronomie/commande/teresa" : "/gastronomie/reservation/teresa"}
+                /* 👇 MODIFICATION ICI : Si réservation -> go menu */
+                href={action === 'order' ? "/gastronomie/commande/teresa" : "/gastronomie/reservation/menu/teresa"}
                 className="flex items-center justify-between p-6 bg-white text-slate-900 rounded-3xl hover:scale-[1.02] transition-transform"
               >
                 <div className="flex items-center gap-4">

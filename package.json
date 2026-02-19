@@ -15,6 +15,7 @@
     "@upstash/redis": "^1.36.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.9.0",
     "lucide-react": "^0.562.0",
     "mongo-sanitize": "^1.1.0",
     "mongoose": "^9.1.1",

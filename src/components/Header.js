@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react"; // signOut n'était pas utilisé dans le rendu, je l'ai laissé importé au cas où
+import { usePathname } from "next/navigation"; // 1. AJOUT: Import du hook
+import { useSession } from "next-auth/react"; 
 import { ShoppingCart, User, Shield, Menu } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { useEffect, useState } from "react";
@@ -16,6 +17,7 @@ function formatUserName(name) {
 }
 
 export default function Header() {
+  const pathname = usePathname(); // 2. AJOUT: Récupération de l'URL courante
   const { data: session } = useSession();
   const totalItems = useCartStore((s) => s.totalItems());
   const [mounted, setMounted] = useState(false);
@@ -33,6 +35,11 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // 3. AJOUT: Condition pour masquer le Header
+  if (pathname?.startsWith("/gastronomie")) {
+    return null;
+  }
+
   return (
     <header
       className={`
@@ -49,7 +56,6 @@ export default function Header() {
           
           {/* --- LOGO --- */}
           <Link href="/" className="flex items-center gap-2 group">
-            {/* Petit logo graphique optionnel ou juste le texte stylisé */}
             <div className="text-xl md:text-2xl font-extrabold tracking-tight ml-11">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500 dark:from-green-400 dark:to-emerald-300 transition-all group-hover:brightness-110">
                 Hebron
@@ -140,23 +146,6 @@ export default function Header() {
                 <span>Connexion</span>
               </Link>
             )}
-
-            {/* ADMIN LINK (Optionnel - Commenté mais stylisé) */}
-            {/* {session?.user?.isAdmin && (
-              <Link
-                href="/admin"
-                className="
-                  p-2 rounded-full
-                  bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
-                  hover:bg-yellow-200 dark:hover:bg-yellow-900/50
-                  transition-colors
-                "
-                title="Administration"
-              >
-                <Shield className="w-5 h-5" />
-              </Link>
-            )} */}
-
           </div>
         </div>
       </div>

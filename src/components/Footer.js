@@ -1,10 +1,20 @@
 "use client";
 
 import Link from "next/link";
+// 1. Importation du hook de navigation 👇
+import { usePathname } from "next/navigation";
 import { Facebook, Instagram, Mail, MapPin, Phone, ArrowRight, Zap, ShieldCheck } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  
+  // 2. Récupération du chemin URL actuel 👇
+  const pathname = usePathname();
+
+  // 3. Condition : si l'URL contient "/gastronomie", on ne rend rien du tout 👇
+  if (pathname?.includes("/gastronomie")) {
+    return null;
+  }
 
   return (
     <footer className="relative bg-[#0f172a] text-gray-400 pt-20 pb-10 overflow-hidden border-t border-white/5">
@@ -64,7 +74,6 @@ export default function Footer() {
               <FooterLink href="/terms" label="Conditions CGV" />
               <FooterLink href="/faq" label="Centre d'aide" />
               <FooterLink href="/privacy" label="Protocole de confidentialité" />
-              {/* <FooterLink href="/contact" label="Open Ticket" /> */}
             </ul>
           </div>
 

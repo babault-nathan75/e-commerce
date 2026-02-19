@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { UtensilsCrossed } from "lucide-react";
 import { useEffect, useState } from "react";
 import { 
   Users, ShoppingBag, BarChart3, Image as ImageIcon, ChevronDown, 
   BookOpen, Store, TrendingUp, TrendingDown, LayoutDashboard, 
-  MessageSquare, Star, Edit3, Trash2, X, Loader2, Save, PlusCircle, DollarSign
+  MessageSquare, Star, Edit3, Trash2, X, Loader2, Save, PlusCircle, DollarSign,
+  Calendar 
 } from "lucide-react";
 
 // --- UNITÉ ANALYTIQUE TREMOR ---
@@ -123,8 +125,11 @@ export default function AdminHome() {
           </div>
 
           <nav className="flex items-center flex-wrap justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md">
-            <AdminNav href="/admin/users" title="Clients"><Users size={18} /></AdminNav>
-            <AdminNav href="/admin/orders" title="Ventes"><ShoppingBag size={18} /></AdminNav>
+            {/* 1. Clients avec badge (nouveaux inscrits par ex) */}
+            <AdminNav href="/admin/users" title="Clients" count={data?.notifications?.users}><Users size={18} /></AdminNav>
+            
+            {/* 2. Ventes avec badge (commandes boutique en attente) */}
+            <AdminNav href="/admin/orders" title="Ventes" count={data?.notifications?.orders}><ShoppingBag size={18} /></AdminNav>
 
             <div className="relative">
               <button onClick={() => { setShowShopMenu(!showShopMenu); setShowLibMenu(false); }}
@@ -159,7 +164,18 @@ export default function AdminHome() {
                 />
               )}
             </div>
-            <AdminNav href="/admin/banners" title="Pubs"><ImageIcon size={18} /></AdminNav>
+            
+            {/* 3. Gastronomie avec badge (repas en attente) */}
+            <AdminNav href="/admin/gastronomie" title="Gastronomie" count={data?.notifications?.gastronomy}>
+                <UtensilsCrossed size={18} />
+            </AdminNav>
+
+            {/* 4. Réservations avec badge (tables en attente) */}
+            <AdminNav href="/admin/reservations" title="Réservations" count={data?.notifications?.bookings}>
+                <Calendar size={18} />
+            </AdminNav>
+
+            <AdminNav href="/admin/banners" title="Bannières"><ImageIcon size={18} /></AdminNav>
           </nav>
         </div>
       </header>
@@ -250,7 +266,7 @@ export default function AdminHome() {
               categories={["value"]}
               colors={["blue"]}
               showLegend={false}
-              yAxisWidth={48}
+              yAxisWidth={48} // ✅ Correction ici : yAxisWidth au lieu de showYAxisWidth
             />
           </Card>
         </Grid>
@@ -300,10 +316,20 @@ function DropdownMenu({ items, channel, color = "orange", close, onAdd, onEdit, 
   );
 }
 
-function AdminNav({ href, title, children }) {
+// 🛠️ MODIFICATION DE ADMINNAV POUR ACCEPTER UN COMPTEUR
+function AdminNav({ href, title, children, count }) {
   return (
-    <Link href={href} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-70 hover:opacity-100 hover:bg-white/10 transition-all text-white">
-      {children} <span className="hidden xl:block">{title}</span>
+    <Link href={href} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-70 hover:opacity-100 hover:bg-white/10 transition-all text-white group">
+      <div className="relative">
+        {children}
+        {/* Badge de notification flottant */}
+        {count > 0 && (
+          <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-[#232f3e] animate-pulse">
+            {count > 9 ? '9+' : count}
+          </span>
+        )}
+      </div>
+      <span className="hidden xl:block">{title}</span>
     </Link>
   );
 }

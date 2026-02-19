@@ -60,7 +60,7 @@ export default function ReservationPage({ params }) {
            <div className="relative z-10">
                <Link href="/gastronomie" className="text-white/60 hover:text-white text-sm font-bold mb-8 block">← RETOUR</Link>
                <h1 className="text-4xl font-black uppercase leading-none mb-4">{restaurantName}</h1>
-               <p className="text-white/80">Remplissez le formulaire pour garantir votre table. Une confirmation vous sera envoyée par SMS/Email.</p>
+               <p className="text-white/80">Remplissez le formulaire pour garantir votre table. Une confirmation vous sera envoyée par Email.</p>
            </div>
            
            {/* Formes décoratives */}
@@ -78,7 +78,13 @@ export default function ReservationPage({ params }) {
                 <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-400 uppercase ml-2">Date</label>
-                        <input type="date" name="date" required className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-slate-900" />
+                        <input 
+                            type="date" 
+                            name="date" 
+                            required 
+                            min={new Date().toISOString().split('T')[0]} 
+                            className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-slate-900" 
+                        />
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-400 uppercase ml-2">Plage Horaire</label>

@@ -119,8 +119,10 @@ export default function AdminHome() {
               <LayoutDashboard size={24} />
             </div>
             <div>
-              <h1 className="text-xl font-black tracking-tighter uppercase italic">Hebron <span className="text-orange-500">admin</span></h1>
-              <Text className="text-[9px] opacity-50 font-bold uppercase tracking-widest leading-none text-white">Opérations Terminal v3.2</Text>
+              <Link href="/">
+                <h1 className="text-xl font-black tracking-tighter uppercase italic">Hebron <span className="text-orange-500">admin</span></h1>
+                <Text className="text-[9px] opacity-50 font-bold uppercase tracking-widest leading-none text-white">Opérations Terminal v3.2</Text>
+              </Link>
             </div>
           </div>
 

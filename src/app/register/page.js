@@ -12,6 +12,7 @@ export default function RegisterPage() {
     name: "",
     email: "",
     phone: "",
+    address: "",
     password: "",
     passwordConfirm: "",
   });
@@ -44,6 +45,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name: form.name,
           email: form.email,
+          address: form.address,
           phone: form.phone,
           password: form.password
         })
@@ -87,7 +89,7 @@ export default function RegisterPage() {
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             {/* NOM */}
             <div>
-              <label className="text-sm font-medium text-gray-700">Nom complet</label>
+              <label className="text-sm font-medium text-gray-700">Nom & prénom(s)</label>
               <div className="mt-1 relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -102,7 +104,7 @@ export default function RegisterPage() {
 
             {/* EMAIL */}
             <div>
-              <label className="text-sm font-medium text-gray-700">Adresse email</label>
+              <label className="text-sm font-medium text-gray-700">email</label>
               <div className="mt-1 relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -127,6 +129,22 @@ export default function RegisterPage() {
                   type="number"
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   placeholder="+225 07 00 00 00 00"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* address */}
+            <div>
+              <label className="text-sm font-medium text-gray-700">address</label>
+              <div className="mt-1 relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  className="w-full pl-10 pr-3 py-2.5 rounded-lg border focus:ring-2 focus:ring-orange-400 focus:outline-none"
+                  value={form.address}
+                  type="text"
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  placeholder="Ville ou commune, quartier, rue (optionnel)"
                   required
                 />
               </div>

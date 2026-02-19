@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react"; // Modif : Ajout de Suspense
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Eye, EyeOff, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 
@@ -31,7 +31,8 @@ const PasswordInput = ({ label, value, onChange, showPw, toggleShowPw }) => (
   </div>
 );
 
-export default function ResetPasswordPage() {
+// Modif : On encapsule ton code dans un composant de contenu
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -136,5 +137,14 @@ export default function ResetPasswordPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Modif : Export par défaut avec Suspense indispensable pour le build Next.js
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

@@ -1,0 +1,6 @@
+Je veux un site web ou l'on pourra faire des réservations et des commandes a partir des ménus que je t'ai envoyé, bien évidemment ce sont 2 lieux différents donc pense a bien séparer les 2 endroits.
+Pour la reservation met un calendrier et une plage horaire dans le formulaire de reservation et pour les commandes faisons comme le fait: Uber eat, Glovo, Jumia Food...
+Je veux que ça soit en nextJS (Pas de TS, TSX et JSX seulement du JS).
+J'utilise mongo DB et tailwind css.
+Je veux un troisième lien qui va m'envoyer sur une page qui va me présenter 2 boutons: Paaser une commande ou Effectuer une reservation.
+Tous les 2 aurons les mêmes ménus mais n'auront pas le même formulaire. 

@@ -1,9 +1,11 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+import headlessui from "@headlessui/tailwindcss";
+
+export default {
   content: [
     "./src/app/**/*.{js,jsx}",
     "./src/components/**/*.{js,jsx}",
-    // --- PROTOCOLE TREMOR : Indispensable pour détecter les classes des graphiques ---
+    // --- PROTOCOLE TREMOR ---
     "./node_modules/@tremor/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
@@ -11,12 +13,11 @@ module.exports = {
     current: "currentColor",
     extend: {
       colors: {
-        // Vos couleurs d'origine
         brand: {
           orange: "#F97316",
           green: "#16A34A",
           yellow: "#FACC15",
-          navy: "#232f3e", // Ajout du Navy Hebron pour la cohérence
+          navy: "#232f3e",
         },
         // --- CONFIGURATION TREMOR ---
         tremor: {
@@ -24,7 +25,7 @@ module.exports = {
             faint: "#fff7ed",
             muted: "#ffedd5",
             subtle: "#fdba74",
-            DEFAULT: "#F97316", // Orange Hebron par défaut sur les charts
+            DEFAULT: "#F97316",
             emphasis: "#ea580c",
             inverted: "#ffffff",
           },
@@ -49,7 +50,6 @@ module.exports = {
           },
         },
       },
-      // --- VOS ANIMATIONS PÉTILLANTES ---
       keyframes: {
         sparkle: {
           '0%, 100%': { 'background-position': '0% 50%' },
@@ -64,10 +64,9 @@ module.exports = {
         'sparkle-move': 'sparkle 3s ease infinite',
         'shimmer': 'shimmer 2s infinite',
       },
-      // --- AJUSTEMENTS TREMOR ---
       borderRadius: {
         "tremor-small": "0.375rem",
-        "tremor-default": "1.5rem", // Arrondi Hebron pour les cartes
+        "tremor-default": "1.5rem",
         "tremor-full": "9999px",
       },
       boxShadow: {
@@ -75,23 +74,19 @@ module.exports = {
       }
     }
   },
-  // --- SAFELIST : Empêche la suppression des couleurs dynamiques au build ---
   safelist: [
     {
-      pattern:
-        /^(bg-(?:tremor|(?:neutral|orange|emerald|blue|red))-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
+      pattern: /^(bg-(?:tremor|(?:neutral|orange|emerald|blue|red))-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
       variants: ["hover", "ui-selected"],
     },
     {
-      pattern:
-        /^(text-(?:tremor|(?:neutral|orange|emerald|blue|red))-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
+      pattern: /^(text-(?:tremor|(?:neutral|orange|emerald|blue|red))-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
       variants: ["hover", "ui-selected"],
     },
     {
-      pattern:
-        /^(border-(?:tremor|(?:neutral|orange|emerald|blue|red))-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
+      pattern: /^(border-(?:tremor|(?:neutral|orange|emerald|blue|red))-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
       variants: ["hover", "ui-selected"],
     },
   ],
-  plugins: [require("@headlessui/tailwindcss")]
+  plugins: [headlessui]
 };

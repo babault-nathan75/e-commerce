@@ -64,20 +64,20 @@ export default async function ProductDetailsPage({ params }) {
       <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
         
         {/* --- NAVIGATION / BREADCRUMB --- */}
-        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
-          <Link href="/shop" className="group flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-black dark:hover:text-white transition-colors">
-            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-            Retour au catalogue
-          </Link>
-          <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            <Share2 size={18} className="text-gray-500" />
-          </button>
-        </div>
+          <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+            <button onClick={() => window.history.back()} className="group flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-black dark:hover:text-white transition-colors">
+              <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+              Retour au catalogue
+            </button>
+            <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <Share2 size={18} className="text-gray-500" />
+            </button>
+          </div>
 
-        <div className="max-w-7xl mx-auto px-6 pb-20">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-20">
-            
-            {/* COLONNE GAUCHE : IMAGE (Lg: 7/12) */}
+          <div className="max-w-7xl mx-auto px-6 pb-20">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-20">
+              
+              {/* COLONNE GAUCHE : IMAGE (Lg: 7/12) */}
             <div className="lg:col-span-7">
               <div className="relative aspect-square bg-gray-50 dark:bg-gray-900 rounded-[2.5rem] overflow-hidden border border-gray-100 dark:border-gray-800 flex items-center justify-center group">
                 <img

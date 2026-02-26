@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-export const runtime = "nodejs";
+// ❌ SUPPRIMER: export const runtime = "nodejs";
 
 export async function proxy(req) {
   console.log(`🔒 [proxy] Tentative d'accès à : ${req.nextUrl.pathname}`);
@@ -12,7 +12,7 @@ export async function proxy(req) {
     cookieName:
       process.env.NODE_ENV === "production"
         ? "__Secure-next-auth.session-token"
-        : "next-auth.session-token"
+        : "next-auth.session-token",
   });
 
   console.log(`👤 [proxy] Token trouvé : ${token ? "OUI" : "NON"}`);
@@ -35,5 +35,5 @@ export async function proxy(req) {
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/:path*", "/api/admin/:path*"]
+  matcher: ["/admin", "/admin/:path*", "/api/admin/:path*"],
 };

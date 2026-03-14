@@ -105,11 +105,10 @@ export default function LibraryClient({
             
             {/* Image (Haut) */}
             <div className="relative aspect-[3/4] bg-gray-50 dark:bg-black overflow-hidden">
-              <Image 
+              <img 
                 src={book.imageUrl} 
                 alt={book.name} 
-                fill 
-                className="object-cover transition-transform duration-700 group-hover:scale-105" 
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
               />
               <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/90 p-2 rounded-xl border border-white/20">
                 <Sparkles size={12} className="text-emerald-500" />

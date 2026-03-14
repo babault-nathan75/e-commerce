@@ -67,7 +67,7 @@ export default async function ProductDetailsPage({ params }) {
         <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
           <Link href="/" className="group flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-black dark:hover:text-white transition-colors">
             <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-            Retour au catalogue
+            Retour
           </Link>
           <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             <Share2 size={18} className="text-gray-500" />

@@ -4,3 +4,7 @@ Je veux que ça soit en nextJS (Pas de TS, TSX et JSX seulement du JS).
 J'utilise mongo DB et tailwind css.
 Je veux un troisième lien qui va m'envoyer sur une page qui va me présenter 2 boutons: Paaser une commande ou Effectuer une reservation.
 Tous les 2 aurons les mêmes ménus mais n'auront pas le même formulaire. 
+
+
+
+Inventaire global : https://hebronivoireshops.com/admin/products

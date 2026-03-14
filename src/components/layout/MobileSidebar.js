@@ -58,7 +58,7 @@ export default function MobileSidebar() {
           <div className="flex items-center gap-3">
             <div className="flex flex-col">
               <h2 className="text-xl font-black italic uppercase tracking-tighter leading-none">
-                <span className="text-orange-500">Hebron</span> Ivoire <span className="text-green-500">Shops</span>
+                <span className="text-orange-500">Hebron-ivoire</span> <span className="text-green-500">Shops</span>
               </h2>
             </div>
           </div>

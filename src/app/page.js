@@ -26,11 +26,11 @@ export default function HomePage() {
           {/* Main Title */}
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 dark:text-white">
             <span className="block mb-2">Bienvenue sur</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-green-400 dark:from-green-400 dark:to-emerald-300">
-              Hebron
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-400 dark:from-orange-400 dark:to-emerald-300">
+              Hebron-ivoire
             </span>{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500 dark:from-orange-400 dark:to-yellow-300">
-              Ivoire Shops
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-green-500 dark:from-green-400 dark:to-yellow-300">
+              Shops
             </span>
           </h1>
 
@@ -86,7 +86,7 @@ export default function HomePage() {
               hover:scale-105
             "
             >
-            🍽️ Commander ou réserver
+            🍽️ Restaurant
           </Link>
 
         </div>

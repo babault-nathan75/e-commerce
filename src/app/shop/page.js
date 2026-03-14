@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/db";
 import { Product } from "@/models/Product";
 import { Banner } from "@/models/Banner"; 
 import BannerCarousel from "@/components/shop/BannerCarousel";
+import Image from "next/image";
 
 export const metadata = {
   title: "Boutique – Hebron Ivoire Shops",
@@ -170,10 +171,11 @@ export default async function ShopPage({ searchParams }) {
 
                     {/* Image Container */}
                     <div className="relative aspect-[4/5] w-full bg-[#f9fafb] dark:bg-gray-800/50 p-8 flex items-center justify-center overflow-hidden">
-                      <img
+                      <Image
                         src={p.imageUrl}
                         alt={p.name}
-                        className="w-full h-full object-contain transition-transform duration-700 ease-out group-hover:scale-110"
+                        sizes="(max-width:768px) 50vw, 25vw"
+                        className="object-contain transition-transform duration-700 ease-out group-hover:scale-110"
                       />
                       {!isOutOfStock && (
                         <div className="absolute bottom-4 right-4 translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">

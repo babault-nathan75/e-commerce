@@ -59,11 +59,11 @@ export default function Header() {
           
           <Link href="/" className="flex items-center gap-2 group">
             <div className="text-xl md:text-2xl font-extrabold tracking-tight ml-11">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500 transition-all group-hover:brightness-110">
-                Hebron
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-400 dark:from-orange-400 dark:to-emerald-300">
+                Hebron-ivoire 
               </span>{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500 transition-all group-hover:brightness-110">
-                Ivoire Shops
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-green-500 transition-all group-hover:brightness-110">
+              Shops
               </span>
             </div>
           </Link>

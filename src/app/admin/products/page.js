@@ -9,23 +9,43 @@ import {
   Plus, 
   Edit3, 
   AlertTriangle,
-  ChevronRight
+  ChevronRight,
+  Search // Import de l'icône loupe
 } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function AdminProductsPage({ searchParams }) {
   const params = await searchParams;
   const channel = params.channel || "";
   const category = params.category || "";
+  const searchTerm = params.q || ""; // On récupère le terme de recherche
 
   await connectDB();
 
+  // --- LOGIQUE DE RECHERCHE ---
   const query = {};
   if (channel) query.channel = channel;
   if (category) query.category = category;
+  if (searchTerm) {
+    query.name = { $regex: searchTerm, $options: "i" }; // Recherche insensible à la casse
+  }
 
   const products = await Product.find(query)
     .sort({ stockAvailable: 1, createdAt: -1 })
     .lean();
+
+  // Action pour gérer la soumission du formulaire de recherche (Server Action locale)
+  async function handleSearch(formData) {
+    "use server";
+    const q = formData.get("q");
+    // On construit l'URL de redirection avec les paramètres existants
+    const urlParams = new URLSearchParams();
+    if (channel) urlParams.set("channel", channel);
+    if (category) urlParams.set("category", category);
+    if (q) urlParams.set("q", q);
+    
+    redirect(`/admin/products?${urlParams.toString()}`);
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
@@ -50,12 +70,26 @@ export default async function AdminProductsPage({ searchParams }) {
             </h1>
           </div>
 
-          <Link
-            href="/admin/products/new"
-            className="bg-gray-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 transition-all shadow-xl shadow-gray-200 flex items-center justify-center gap-2"
-          >
-            <Plus size={18} /> Ajouter un produit
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3">
+             {/* --- BARRE DE RECHERCHE --- */}
+            <form action={handleSearch} className="relative group min-w-[300px]">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
+              <input 
+                name="q"
+                type="text"
+                defaultValue={searchTerm}
+                placeholder="Rechercher une référence..."
+                className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-orange-500 shadow-sm transition-all"
+              />
+            </form>
+
+            <Link
+              href="/admin/products/new"
+              className="bg-gray-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 transition-all shadow-xl shadow-gray-200 flex items-center justify-center gap-2"
+            >
+              <Plus size={18} /> Ajouter
+            </Link>
+          </div>
         </div>
 
         {/* --- LISTE D'INVENTAIRE --- */}
@@ -88,7 +122,7 @@ export default async function AdminProductsPage({ searchParams }) {
                         {p.channel === "library" ? "Digital/Livre" : "Boutique"}
                       </span>
                       <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">
-                        {p.category?.[0] || "Standard"}
+                        {p.category || "Standard"}
                       </span>
                     </div>
                     <h2 className="font-black text-xl text-gray-900 truncate leading-tight mb-1 italic uppercase tracking-tighter">
@@ -129,6 +163,11 @@ export default async function AdminProductsPage({ searchParams }) {
               </div>
               <h3 className="text-xl font-black text-gray-900 uppercase italic">Aucun article trouvé</h3>
               <p className="text-gray-400 font-medium mt-1">L'inventaire pour cette sélection est vide.</p>
+              {searchTerm && (
+                <Link href="/admin/products" className="inline-block mt-4 text-xs font-black uppercase text-orange-500 hover:underline">
+                  Réinitialiser la recherche
+                </Link>
+              )}
             </div>
           )}
         </div>

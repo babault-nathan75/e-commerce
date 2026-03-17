@@ -10,35 +10,44 @@ import {
   Edit3, 
   AlertTriangle,
   ChevronRight,
-  Search // Import de l'icône loupe
+  Search 
 } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function AdminProductsPage({ searchParams }) {
   const params = await searchParams;
   const channel = params.channel || "";
-  const category = params.category || "";
-  const searchTerm = params.q || ""; // On récupère le terme de recherche
+  // On décode la catégorie pour gérer les accents et caractères spéciaux de l'URL
+  const category = params.category ? decodeURIComponent(params.category) : "";
+  const searchTerm = params.q || "";
 
   await connectDB();
 
-  // --- LOGIQUE DE RECHERCHE ---
+  // --- LOGIQUE DE RECHERCHE OPTIMISÉE ---
   const query = {};
-  if (channel) query.channel = channel;
-  if (category) query.category = category;
+  
+  if (channel) {
+    query.channel = channel;
+  }
+
+  if (category) {
+    // Utilisation d'une Regex pour correspondre exactement mais sans être bloqué par la casse
+    // ou des espaces invisibles en fin de chaîne dans la DB
+    query.category = { $regex: new RegExp(`^${category}$`, "i") };
+  }
+
   if (searchTerm) {
-    query.name = { $regex: searchTerm, $options: "i" }; // Recherche insensible à la casse
+    query.name = { $regex: searchTerm, $options: "i" };
   }
 
   const products = await Product.find(query)
     .sort({ stockAvailable: 1, createdAt: -1 })
     .lean();
 
-  // Action pour gérer la soumission du formulaire de recherche (Server Action locale)
+  // Action pour gérer la soumission du formulaire
   async function handleSearch(formData) {
     "use server";
     const q = formData.get("q");
-    // On construit l'URL de redirection avec les paramètres existants
     const urlParams = new URLSearchParams();
     if (channel) urlParams.set("channel", channel);
     if (category) urlParams.set("category", category);
@@ -71,7 +80,6 @@ export default async function AdminProductsPage({ searchParams }) {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-             {/* --- BARRE DE RECHERCHE --- */}
             <form action={handleSearch} className="relative group min-w-[300px]">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
               <input 
@@ -104,7 +112,6 @@ export default async function AdminProductsPage({ searchParams }) {
                   key={p._id.toString()}
                   className="bg-white border border-gray-100 rounded-[2rem] p-4 flex flex-col md:flex-row items-center gap-6 hover:shadow-2xl hover:shadow-gray-200/50 transition-all group"
                 >
-                  {/* VISUEL */}
                   <div className="w-24 h-24 bg-gray-50 rounded-3xl overflow-hidden flex-shrink-0 p-2 border border-gray-50">
                     <img
                       src={p.imageUrl}
@@ -113,7 +120,6 @@ export default async function AdminProductsPage({ searchParams }) {
                     />
                   </div>
 
-                  {/* IDENTITÉ */}
                   <div className="flex-1 text-center md:text-left min-w-0">
                     <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
                       <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
@@ -133,7 +139,6 @@ export default async function AdminProductsPage({ searchParams }) {
                     </p>
                   </div>
 
-                  {/* STATUS DU STOCK */}
                   <div className={`flex flex-col items-center justify-center px-6 py-3 rounded-2xl border-2 min-w-[120px] ${
                     isOut ? "bg-rose-50 border-rose-100 text-rose-600" : 
                     isLowStock ? "bg-orange-50 border-orange-100 text-orange-600" : 
@@ -146,7 +151,6 @@ export default async function AdminProductsPage({ searchParams }) {
                     </div>
                   </div>
 
-                  {/* ACTIONS */}
                   <Link
                     href={`/admin/products/${p._id}/edit`}
                     className="p-4 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-2xl transition-all"
@@ -163,9 +167,9 @@ export default async function AdminProductsPage({ searchParams }) {
               </div>
               <h3 className="text-xl font-black text-gray-900 uppercase italic">Aucun article trouvé</h3>
               <p className="text-gray-400 font-medium mt-1">L'inventaire pour cette sélection est vide.</p>
-              {searchTerm && (
+              {(searchTerm || category || channel) && (
                 <Link href="/admin/products" className="inline-block mt-4 text-xs font-black uppercase text-orange-500 hover:underline">
-                  Réinitialiser la recherche
+                  Réinitialiser les filtres
                 </Link>
               )}
             </div>

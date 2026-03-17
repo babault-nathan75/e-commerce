@@ -41,9 +41,9 @@ export default function Footer() {
           <div className="space-y-8">
             <Link href="/" className="inline-block group">
               <div className="text-2xl font-black uppercase italic tracking-tighter leading-none">
-                <span className="text-white">Hebron</span>
+                <span className="text-white">Hebron-ivoire</span>
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-400">
-                  Ivoire Shops
+                  Shops
                 </span>
               </div>
             </Link>

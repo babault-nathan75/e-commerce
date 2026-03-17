@@ -1,10 +1,11 @@
 import Link from "next/link";
+import Image from "next/image"; // Importation nécessaire pour le logo
 
 export default function HomePage() {
   return (
     <div className="min-h-screen transition-colors duration-300 bg-gradient-to-b from-white via-white to-yellow-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
       
-      {/* Background decoration (Glow effect) visible mainly in dark mode */}
+      {/* Background decoration (Glow effect) */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-orange-500/10 dark:bg-orange-500/5 rounded-full blur-[100px]" />
         <div className="absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] bg-green-500/10 dark:bg-green-500/5 rounded-full blur-[100px]" />
@@ -15,13 +16,23 @@ export default function HomePage() {
         {/* --- HERO SECTION --- */}
         <div className="text-center space-y-8">
           
-          {/* Badge */}
-          <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold 
-            bg-yellow-100 text-yellow-800 border border-yellow-200
-            dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700/50
-            transition-colors duration-300">
-            🇨🇮 Commerce local & digital
-          </span>
+          {/* Logo remplacé ici */}
+          <div className="flex justify-center mb-6">
+            <div className="relative group transition-transform duration-500 hover:scale-110">
+              <Image 
+                src="/favicon.ico" 
+                alt="Hebron-ivoire Logo" 
+                width={180} 
+                height={120}
+                className="drop-shadow-2xl animate-pulse-slow"
+                priority
+              />
+              {/* Petit badge discret sous le logo pour garder le contexte pays */}
+              {/* <div className="mt-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                🇨🇮 Excellence Ivoirienne
+              </div> */}
+            </div>
+          </div>
 
           {/* Main Title */}
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 dark:text-white">
@@ -85,10 +96,9 @@ export default function HomePage() {
               shadow-lg transition-all duration-300
               hover:scale-105
             "
-            >
+          >
             🍽️ Restaurant
           </Link>
-
         </div>
 
         {/* --- FEATURES GRID --- */}

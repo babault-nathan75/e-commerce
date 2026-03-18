@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { v2 as cloudinary } from "cloudinary"; // ➕ Import Cloudinary
+import { v2 as cloudinary } from "cloudinary"; 
 import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { Product } from "@/models/Product";
@@ -42,12 +42,12 @@ const ProductSchema = z.object({
   channel: z.enum(["shop", "library"]),
   productType: z.enum(["physical", "digital"]).default("physical"),
   category: z.array(z.string()).optional().default([]),
-  stockAvailable: z.coerce.number().min(0).default(0) // ✅ Modifié ici pour le PUT
+  stockAvailable: z.coerce.number().min(0).default(0) // ✅ Harmonisé ici
 });
 
 const UpdateSchema = ProductSchema.partial();
 
-// --- ➕ MÉTHODE : POST (CRÉATION AVEC IMAGE) ---
+// --- ➕ MÉTHODE : POST ---
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
@@ -78,6 +78,7 @@ export async function POST(req) {
     const validatedData = ProductSchema.parse(rawData);
     await connectDB();
 
+    // ✅ On utilise directement validatedData car stockAvailable est déjà dedans
     const newProduct = await Product.create(validatedData);
 
     if (newProduct.stockAvailable <= 5) {
@@ -100,10 +101,9 @@ export async function GET(_req, context) {
   return NextResponse.json({ ok: true, product });
 }
 
-// --- ⚙️ MÉTHODE : PUT (MODIFICATION SÉCURISÉE) ---
+// --- ⚙️ MÉTHODE : PUT (MODIFICATION SÉCURISÉE ET HARMONISÉE) ---
 export async function PUT(req, context) {
   try {
-    // 1. Next.js 15 Safe Params
     const params = await context.params;
     const id = params.id;
 
@@ -120,7 +120,7 @@ export async function PUT(req, context) {
       return NextResponse.json({ error: "Produit non trouvé" }, { status: 404 });
     }
 
-    // 2. GESTION DE L'IMAGE CLOUDINARY
+    // 1. Gestion de l'image (Cloudinary)
     let imageUrl = product.imageUrl; 
     const imageInput = formData.get("image");
 
@@ -131,7 +131,7 @@ export async function PUT(req, context) {
       imageUrl = imageInput;
     }
 
-    // 3. PRÉPARATION DES DONNÉES (stockAvailable)
+    // 2. Préparation des données (Utilisation de stockAvailable)
     const rawUpdate = {
       name: formData.get("name") || product.name,
       price: formData.get("price") ? Number(formData.get("price")) : product.price,
@@ -144,7 +144,6 @@ export async function PUT(req, context) {
         : product.stockAvailable
     };
 
-    // Catégories
     if (formData.has("category")) {
       const catVal = formData.get("category");
       try {
@@ -154,25 +153,24 @@ export async function PUT(req, context) {
       }
     }
 
-    // 4. VALIDATION ZOD
+    // 3. Validation Zod Safe
     const result = UpdateSchema.safeParse(rawUpdate);
     
     if (!result.success) {
-      console.error("❌ ERREUR ZOD :", result.error.format());
+      console.error("❌ ERREUR ZOD :", JSON.stringify(result.error.format(), null, 2));
       return NextResponse.json({ 
         error: "Données invalides", 
         details: result.error.format() 
       }, { status: 400 });
     }
 
-    // 5. SAUVEGARDE
-    // On force l'URL et le stockAvailable validé
+    // 4. Sauvegarde finale
     product.imageUrl = imageUrl;
     Object.assign(product, result.data);
     
     await product.save();
-    
-    // Alerte si stock bas après modif
+    console.log("✅ Produit mis à jour avec succès :", product.name);
+
     if (product.stockAvailable <= 5) {
       triggerStockAlert(product).catch(err => console.error("Alert Error:", err));
     }
@@ -192,18 +190,12 @@ export async function PUT(req, context) {
 export async function DELETE(_req, { params }) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
-  
-  if (!session?.user?.isAdmin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
     await connectDB();
-
     const product = await Product.findById(id);
-    if (!product) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
+    if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     if (product.imageUrl && product.imageUrl.includes("cloudinary")) {
       try {
@@ -212,14 +204,13 @@ export async function DELETE(_req, { params }) {
         const publicId = folderAndFile.split('.')[0];
         await cloudinary.uploader.destroy(publicId);
       } catch (cloudErr) {
-        console.error("Erreur suppression Cloudinary:", cloudErr);
+        console.error("Erreur Cloudinary:", cloudErr);
       }
     }
 
     await Product.findByIdAndDelete(id);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("DELETE PRODUCT ERROR:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

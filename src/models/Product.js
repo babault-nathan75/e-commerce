@@ -1,13 +1,38 @@
-const ProductSchema = z.object({
-  name: z.string().min(2),
-  price: z.coerce.number().min(0),
-  imageUrl: z.string().min(2),
-  description: z.string().min(5),
-  channel: z.enum(["shop", "library"]),
-  productType: z.enum(["physical", "digital"]).default("physical"),
-  category: z.array(z.string()).optional().default([]),
-  // ✅ On utilise stockAvailable ici aussi pour être cohérent
-  stockAvailable: z.coerce.number().min(0).default(0)
-});
+import mongoose from "mongoose";
 
-const UpdateSchema = ProductSchema.partial();
+const ProductSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    price: { type: Number, required: true, min: 0 },
+    imageUrl: { 
+      type: String, 
+      required: true,
+      trim: true 
+    },
+    description: { type: String, required: true },
+    channel: {
+      type: String,
+      enum: ["shop", "library"],
+      required: true
+    },
+    productType: {
+      type: String,
+      enum: ["physical", "digital"],
+      default: "physical"
+    },
+    category: [{ type: String }],
+    stockAvailable: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0
+    }
+  },
+  { timestamps: true }
+);
+
+// ✅ Cette syntaxe est plus robuste pour Turbopack et Next.js 16
+const Product = mongoose.models.Product || mongoose.model("Product", ProductSchema);
+
+export { Product }; // Export nommé propre
+export default Product; // Export par défaut par sécurité

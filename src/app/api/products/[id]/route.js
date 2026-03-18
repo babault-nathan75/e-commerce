@@ -101,9 +101,10 @@ export async function GET(_req, context) {
   return NextResponse.json({ ok: true, product });
 }
 
-// --- ⚙️ MÉTHODE : PUT (MODIFICATION SÉCURISÉE ET HARMONISÉE) ---
+// --- ⚙️ MÉTHODE : PUT (MODIFICATION SÉCURISÉE) ---
 export async function PUT(req, context) {
   try {
+    // 1. Next.js 15 exige d'attendre les params
     const params = await context.params;
     const id = params.id;
 
@@ -115,12 +116,13 @@ export async function PUT(req, context) {
     await connectDB();
     const formData = await req.formData();
     
+    // 2. Recherche du produit (C'est ici que ça crash si l'export Product est cassé)
     const product = await Product.findById(id);
     if (!product) {
       return NextResponse.json({ error: "Produit non trouvé" }, { status: 404 });
     }
 
-    // 1. Gestion de l'image (Cloudinary)
+    // 3. GESTION DE L'IMAGE CLOUDINARY
     let imageUrl = product.imageUrl; 
     const imageInput = formData.get("image");
 
@@ -131,7 +133,7 @@ export async function PUT(req, context) {
       imageUrl = imageInput;
     }
 
-    // 2. Préparation des données (Utilisation de stockAvailable)
+    // 4. PRÉPARATION DES DONNÉES (Harmonisé sur stockAvailable)
     const rawUpdate = {
       name: formData.get("name") || product.name,
       price: formData.get("price") ? Number(formData.get("price")) : product.price,
@@ -139,11 +141,13 @@ export async function PUT(req, context) {
       channel: formData.get("channel") || product.channel,
       productType: formData.get("productType") || product.productType,
       imageUrl: imageUrl,
+      // On s'assure de récupérer stockAvailable du formulaire
       stockAvailable: formData.get("stockAvailable") !== "" && formData.get("stockAvailable") !== null 
         ? Number(formData.get("stockAvailable")) 
         : product.stockAvailable
     };
 
+    // Gestion sécurisée des catégories
     if (formData.has("category")) {
       const catVal = formData.get("category");
       try {
@@ -153,7 +157,8 @@ export async function PUT(req, context) {
       }
     }
 
-    // 3. Validation Zod Safe
+    // 5. VALIDATION ZOD
+    // Note : Ton ProductSchema doit aussi utiliser stockAvailable pour que ceci passe
     const result = UpdateSchema.safeParse(rawUpdate);
     
     if (!result.success) {
@@ -164,13 +169,14 @@ export async function PUT(req, context) {
       }, { status: 400 });
     }
 
-    // 4. Sauvegarde finale
+    // 6. SAUVEGARDE FINALE
     product.imageUrl = imageUrl;
     Object.assign(product, result.data);
     
     await product.save();
-    console.log("✅ Produit mis à jour avec succès :", product.name);
+    console.log("✅ Produit mis à jour :", product.name);
 
+    // Alerte de stock si nécessaire
     if (product.stockAvailable <= 5) {
       triggerStockAlert(product).catch(err => console.error("Alert Error:", err));
     }
@@ -186,32 +192,54 @@ export async function PUT(req, context) {
   }
 }
 
-// --- 🗑️ MÉTHODE : DELETE ---
-export async function DELETE(_req, { params }) {
-  const { id } = await params;
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
+// --- 🗑️ MÉTHODE : DELETE (AVEC SUPPRESSION CLOUDINARY FIABLE) ---
+export async function DELETE(_req, context) {
   try {
+    const params = await context.params;
+    const id = params.id;
+
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json({ error: "Interdit" }, { status: 403 });
+    }
+
     await connectDB();
     const product = await Product.findById(id);
-    if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (product.imageUrl && product.imageUrl.includes("cloudinary")) {
+    if (!product) {
+      return NextResponse.json({ error: "Produit non trouvé" }, { status: 404 });
+    }
+
+    // 1. SUPPRESSION SUR CLOUDINARY
+    if (product.imageUrl && product.imageUrl.includes("cloudinary.com")) {
       try {
-        const parts = product.imageUrl.split('/');
-        const folderAndFile = parts.slice(-2).join('/');
-        const publicId = folderAndFile.split('.')[0];
-        await cloudinary.uploader.destroy(publicId);
+        // Cette regex extrait tout ce qui se trouve entre le numéro de version (v123...) 
+        // et l'extension (.jpg, .png). C'est la méthode la plus sûre.
+        const regex = /\/v\d+\/(.+)\.[a-z]+$/;
+        const match = product.imageUrl.match(regex);
+
+        if (match && match[1]) {
+          const publicId = match[1]; 
+          console.log("🗑️ Tentative de suppression Cloudinary ID :", publicId);
+          
+          const cloudRes = await cloudinary.uploader.destroy(publicId);
+          console.log("☁️ Réponse Cloudinary :", cloudRes.result); // Doit afficher "ok"
+        }
       } catch (cloudErr) {
-        console.error("Erreur Cloudinary:", cloudErr);
+        console.error("⚠️ Erreur lors de la suppression Cloudinary :", cloudErr.message);
+        // On continue quand même pour supprimer le produit de la DB
       }
     }
 
+    // 2. SUPPRESSION DANS MONGODB
     await Product.findByIdAndDelete(id);
+    console.log("✅ Produit supprimé de la base de données.");
+
     return NextResponse.json({ ok: true });
+
   } catch (err) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("💥 ERREUR DELETE :", err);
+    return NextResponse.json({ error: "Erreur serveur", details: err.message }, { status: 500 });
   }
 }
 

@@ -90,34 +90,56 @@ export default function EditProductPage({ params }) {
     return data.url;
   }
 
+  // --- ACTIONS ---
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
     setLoading(true);
 
     try {
-      let imageUrl = form.imageUrl;
-      if (file) imageUrl = await uploadImage();
+      // 1. On utilise FormData (C'est ÇA qui règle l'erreur Content-Type)
+      const fd = new FormData();
+      
+      // 2. On ajoute tous les champs au formulaire
+      fd.append("name", form.name);
+      fd.append("price", form.price);
+      fd.append("description", form.description);
+      fd.append("channel", form.channel);
+      fd.append("productType", form.productType);
+      
+      // IMPORTANT : On envoie bien "stockAvailable" car c'est ce que le backend attend
+      fd.append("stockAvailable", form.stock);
+      
+      // On envoie la catégorie sous forme de tableau JSON (ton backend fait JSON.parse)
+      fd.append("category", JSON.stringify([form.category]));
 
-      const payload = {
-        ...form,
-        price: Number(form.price),
-        stockAvailable: Number(form.stock), // On renvoie vers le champ stockAvailable du modèle
-        category: [form.category],
-        imageUrl
-      };
+      // 3. Gestion de l'image
+      if (file) {
+        // Si l'utilisateur a choisi un nouveau fichier
+        fd.append("image", file);
+      } else {
+        // Sinon on envoie l'URL actuelle en tant que texte
+        fd.append("image", form.imageUrl);
+      }
 
+      // 4. L'envoi au serveur
       const res = await fetch(`/api/products/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        // ⚠️ CRITIQUE : Ne SURTOUT PAS mettre de "Content-Type" ici. 
+        // Le navigateur va le mettre tout seul en incluant la "boundary" nécessaire.
+        body: fd 
       });
 
-      if (!res.ok) throw new Error("Mise à jour échouée");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Mise à jour échouée");
+      }
       
       router.push("/admin/products");
       router.refresh();
     } catch (e2) {
+      console.error("Erreur frontend :", e2);
       setErr(e2.message);
     } finally {
       setLoading(false);

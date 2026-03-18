@@ -110,6 +110,7 @@ export async function GET(_req, context) {
 // --- ⚙️ MÉTHODE : PUT (MODIFICATION SÉCURISÉE) ---
 export async function PUT(req, context) {
   try {
+    // 1. CRITIQUE POUR NEXT.JS 15 : Awaiter les params pour éviter la 500
     const params = await context.params;
     const id = params.id;
 
@@ -118,38 +119,48 @@ export async function PUT(req, context) {
       return NextResponse.json({ error: "Interdit" }, { status: 403 });
     }
 
-    const formData = await req.formData();
+    // Connexion DB
     await connectDB();
     
+    // Récupération des données du formulaire
+    const formData = await req.formData();
+    
+    // Recherche du produit
     const product = await Product.findById(id);
-    if (!product) return NextResponse.json({ error: "Produit non trouvé" }, { status: 404 });
+    if (!product) {
+      return NextResponse.json({ error: "Produit non trouvé" }, { status: 404 });
+    }
 
-    // 1. GESTION DE L'IMAGE
-    let imageUrl = product.imageUrl; // Par défaut, on garde l'ancienne URL (Cloudinary ou locale)
+    // 2. GESTION DE L'IMAGE
+    let imageUrl = product.imageUrl; 
     const imageInput = formData.get("image");
 
-    // On n'upload vers Cloudinary QUE si c'est un nouveau fichier (pas une string URL)
+    // On n'upload QUE si c'est un nouveau fichier binaire
     if (imageInput && typeof imageInput !== "string" && imageInput.size > 0) {
-      console.log("☁️ Nouveau fichier détecté, upload vers Cloudinary...");
+      console.log("☁️ Nouveau fichier détecté, envoi à Cloudinary...");
       imageUrl = await uploadToCloudinary(imageInput);
     } 
-    // Si le frontend envoie une URL (string), on s'assure de la garder
+    // Si c'est déjà une URL Cloudinary envoyée par le formulaire, on la garde
     else if (typeof imageInput === "string" && imageInput.startsWith("http")) {
       imageUrl = imageInput;
     }
 
-    // 2. PRÉPARATION DES DONNÉES POUR ZOD
+    // 3. PRÉPARATION DES DONNÉES (Nettoyage des types)
     const rawUpdate = {
       name: formData.get("name") || product.name,
-      price: formData.get("price") !== "" ? formData.get("price") : product.price,
+      price: formData.get("price") !== "" && formData.get("price") !== null ? Number(formData.get("price")) : product.price,
       description: formData.get("description") || product.description,
       channel: formData.get("channel") || product.channel,
       productType: formData.get("productType") || product.productType,
-      stock: formData.get("stock") !== "" ? formData.get("stock") : product.stock,
-      imageUrl: imageUrl // L'URL finale
+      imageUrl: imageUrl
     };
 
-    // Parsing sécurisé des catégories (évite le crash JSON.parse(""))
+    // Gestion du stock
+    if (formData.has("stock") && formData.get("stock") !== "") {
+      rawUpdate.stock = Number(formData.get("stock"));
+    }
+
+    // Parsing sécurisé des catégories
     if (formData.has("category")) {
       const catVal = formData.get("category");
       if (catVal && catVal !== "" && catVal !== "undefined") {
@@ -161,41 +172,43 @@ export async function PUT(req, context) {
       }
     }
 
-    // 3. VALIDATION ZOD (Version safeParse pour diagnostic)
-    const validation = UpdateSchema.safeParse(rawUpdate);
+    // 4. VALIDATION ZOD (Version safeParse pour éviter le crash)
+    const result = UpdateSchema.safeParse(rawUpdate);
     
-    if (!validation.success) {
-      console.error("❌ ERREUR ZOD DÉTAILLÉE :", JSON.stringify(validation.error.format(), null, 2));
+    if (!result.success) {
+      // Ce log apparaîtra dans ton terminal Hostinger ou VS Code
+      console.error("❌ ERREUR ZOD :", JSON.stringify(result.error.format(), null, 2));
       return NextResponse.json({ 
         error: "Données invalides", 
-        details: validation.error.format() 
+        details: result.error.format() 
       }, { status: 400 });
     }
 
-    // 4. MISE À JOUR MONGODB
-    const dataToSave = validation.data;
-    
-    // Si le stock a changé, on met à jour stockAvailable
+    const dataToSave = result.data;
+
+    // 5. SYNCHRONISATION DU STOCK
     if (dataToSave.stock !== undefined) {
-      product.stock = Number(dataToSave.stock);
-      product.stockAvailable = Number(dataToSave.stock);
-      delete dataToSave.stock; // On le retire pour l'Object.assign
+      product.stock = dataToSave.stock;
+      product.stockAvailable = dataToSave.stock;
+      delete dataToSave.stock; // On le retire pour éviter les conflits dans Object.assign
     }
 
-    // Application des changements
-    product.imageUrl = imageUrl;
+    // 6. SAUVEGARDE FINALE
+    product.imageUrl = imageUrl; // On force l'URL (Cloudinary ou ancienne)
     Object.assign(product, dataToSave);
     
     await product.save();
-    console.log("✅ Mise à jour réussie pour :", product.name);
+    console.log("✅ Produit mis à jour avec succès :", product.name);
 
     return NextResponse.json({ ok: true, product });
 
   } catch (err) {
-    console.error("💥 ERREUR SERVEUR PUT :", err);
+    // 🚨 CE LOG EST TON MEILLEUR AMI : Il te dira EXACTEMENT pourquoi la 500 arrive
+    console.error("💥 CRASH SERVEUR DANS PUT :", err);
     return NextResponse.json({ 
       error: "Erreur interne du serveur", 
-      details: err.message 
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     }, { status: 500 });
   }
 }

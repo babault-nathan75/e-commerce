@@ -108,10 +108,12 @@ export async function GET(_req, context) {
 }
 
 // --- ⚙️ MÉTHODE : PUT (MODIFICATION AVEC OPTION IMAGE) ---
+// --- ⚙️ MÉTHODE : PUT (MODIFICATION AVEC OPTION IMAGE) ---
 export async function PUT(req, context) {
   try {
     const { id } = await context.params;
     const session = await getServerSession(authOptions);
+    
     if (!session?.user?.isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -122,27 +124,57 @@ export async function PUT(req, context) {
     const product = await Product.findById(id);
     if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // 1. Gestion de l'image (si une nouvelle est envoyée)
+    // 1. Gestion de l'image
     let imageUrl = product.imageUrl;
     const newImage = formData.get("image");
-    if (newImage && typeof newImage !== "string") {
+    
+    // On vérifie que c'est bien un fichier et pas une string ou du vide
+    if (newImage && typeof newImage !== "string" && newImage.size > 0) {
       imageUrl = await uploadToCloudinary(newImage);
     }
 
-    // 2. Extraction des données
+    // 2. Extraction et nettoyage des données
     const rawUpdate = {};
     const fields = ["name", "price", "description", "channel", "productType", "stock"];
+    
     fields.forEach(f => {
-      if (formData.has(f)) rawUpdate[f] = formData.get(f);
+      const val = formData.get(f);
+      // On n'ajoute au schéma que si la valeur n'est pas nulle ou vide
+      if (val !== null && val !== "") {
+        rawUpdate[f] = val;
+      }
     });
-    if (formData.has("category")) rawUpdate.category = JSON.parse(formData.get("category"));
+
+    // Gestion sécurisée des catégories
+    if (formData.has("category")) {
+      const catData = formData.get("category");
+      try {
+        rawUpdate.category = typeof catData === "string" ? JSON.parse(catData) : catData;
+      } catch (e) {
+        rawUpdate.category = []; // Fallback si le JSON est invalide
+      }
+    }
+
     rawUpdate.imageUrl = imageUrl;
 
-    const data = UpdateSchema.parse(rawUpdate);
+    // Validation Zod avec capture d'erreur détaillée
+    const result = UpdateSchema.safeParse(rawUpdate);
+    if (!result.success) {
+      console.error("❌ Erreur Validation Zod:", result.error.format());
+      return NextResponse.json({ 
+        error: "Données invalides", 
+        details: result.error.format() 
+      }, { status: 400 });
+    }
 
-    // 3. Logique de stock
+    const data = result.data;
+
+    // 3. Logique de stock (Mise à jour simultanée de stock et stockAvailable)
     if (data.stock !== undefined) {
-      product.stockAvailable = data.stock;
+      const newStock = Number(data.stock);
+      product.stock = newStock;
+      product.stockAvailable = newStock;
+
       if (product.stockAvailable <= 5) {
         const isOutOfStock = product.stockAvailable === 0;
         const alertTitle = isOutOfStock ? "🔴 RUPTURE DE STOCK" : "⚠️ STOCK FAIBLE";
@@ -155,21 +187,24 @@ export async function PUT(req, context) {
             to: adminEmails[0],
             bcc: adminEmails.slice(1).join(","),
             subject: `${alertTitle} : ${product.name}`,
-            html: `<p>Produit: ${product.name} - Stock: ${product.stockAvailable}</p>`
+            html: `<p>Produit: <b>${product.name}</b><br>Nouveau Stock: <b>${product.stockAvailable}</b></p>`
           });
         }
         await notifyAdmins({ title: alertTitle, message: `${product.name} (${product.stockAvailable})` });
       }
+      // On retire stock pour ne pas que Object.assign crée un doublon ou conflit
       delete data.stock;
     }
 
+    // 4. Mise à jour finale
     Object.assign(product, data);
     await product.save();
 
     return NextResponse.json({ ok: true, product });
+
   } catch (err) {
-    console.error("PUT PRODUCT ERROR:", err);
-    return NextResponse.json({ error: "Invalid request", details: err?.message }, { status: 400 });
+    console.error("💥 PUT PRODUCT ERROR:", err);
+    return NextResponse.json({ error: "Erreur serveur", details: err?.message }, { status: 500 });
   }
 }
 

@@ -63,7 +63,7 @@ export default function LoginPage() {
         <div className="text-center mb-10">
           <Link href="/" className="inline-block mb-4 group">
             <span className="text-3xl font-black tracking-tight text-green-500 dark:text-white">
-              Hebron <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500">Ivoire</span>
+              Hebron-<span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500">Ivoire</span>
             </span>
           </Link>
           <h1 className="text-lg font-medium text-gray-500 dark:text-gray-400">

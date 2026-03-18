@@ -28,7 +28,6 @@ const ProductSchema = new mongoose.Schema(
     },
 
     category: [{ type: String }],
-    subCategory: { type: String, default: "" },
 
     // ✅ STOCK TOUJOURS PRÉSENT
     stockAvailable: {

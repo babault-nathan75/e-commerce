@@ -13,7 +13,8 @@ import {
   ExternalLink,
   Eye,
   Settings2,
-  Sparkles
+  Sparkles,
+  ArrowLeft // ✅ Ajout de l'icône de retour
 } from "lucide-react";
 import Link from "next/link";
 
@@ -121,6 +122,19 @@ export default function AdminBanners() {
 
       <div className="max-w-6xl mx-auto relative z-10">
         
+        {/* --- BOUTON RETOUR --- */}
+        <div className="mb-8">
+          <Link 
+            href="/admin" 
+            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-green-600 transition-colors group"
+          >
+            <div className="p-2 bg-white dark:bg-gray-900 rounded-lg shadow-sm group-hover:shadow-md group-hover:-translate-x-1 transition-all">
+              <ArrowLeft size={14} />
+            </div>
+            Retour au Dashboard
+          </Link>
+        </div>
+
         {/* --- HEADER --- */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div>
@@ -154,7 +168,9 @@ export default function AdminBanners() {
         {showForm && (
           <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border border-white dark:border-gray-800 mb-12 animate-in fade-in slide-in-from-top-8 duration-500">
             <div className="flex items-center gap-3 mb-8">
-                <Sparkles className="text-orange-500" size={20} />
+                <div className="p-1.5 bg-orange-500/10 rounded-lg">
+                  <Sparkles className="text-orange-500" size={20} />
+                </div>
                 <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Nouveau Chef-d'œuvre</h2>
             </div>
 

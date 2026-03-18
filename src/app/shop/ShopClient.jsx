@@ -16,76 +16,86 @@ const currencyFormatter = new Intl.NumberFormat('fr-FR', {
   minimumFractionDigits: 0
 });
 
-// Helper pour générer une pagination moderne
 const generatePagination = (currentPage, totalPages) => {
-  // Si on a 5 pages ou moins, on affiche tout (1 2 3 4 5)
-  if (totalPages <= 5) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-
-  // Si on est au début (ex: Page 1, 2 ou 3) -> 1 2 3 ... 10
-  if (currentPage <= 3) {
-    return [1, 2, 3, "...", totalPages];
-  }
-
-  // Si on est à la fin (ex: Page 8, 9, 10 sur 10) -> 1 ... 8 9 10
-  if (currentPage >= totalPages - 2) {
-    return [1, "...", totalPages - 2, totalPages - 1, totalPages];
-  }
-
-  // Si on est au milieu (ex: Page 5 sur 10) -> 1 ... 4 5 6 ... 10
+  if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+  if (currentPage <= 3) return [1, 2, 3, "...", totalPages];
+  if (currentPage >= totalPages - 2) return [1, "...", totalPages - 2, totalPages - 1, totalPages];
   return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
 };
 
 export default function ShopClient({ initialData, search, category, page }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { categories, banners, products, total, totalPages } = initialData;
+
+  // --- LOGIQUE DE TRI ---
+
+  // 1. Tri des catégories par ordre alphabétique
+  const sortedCategories = [...initialData.categories].sort((a, b) => a.localeCompare(b));
+
+  // 2. Tri des produits par stock (du plus faible au plus élevé)
+  const sortedProducts = [...initialData.products].sort((a, b) => {
+    const stockA = a.stockAvailable ?? a.stock ?? 0;
+    const stockB = b.stockAvailable ?? b.stock ?? 0;
+    return stockA - stockB;
+  });
+
+  const { banners, total, totalPages } = initialData;
 
   const handleSearch = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const searchQuery = formData.get("search");
-    
     const params = new URLSearchParams();
     if (searchQuery) params.set("search", searchQuery);
     if (category) params.set("category", category);
-    
     router.push(`${pathname}?${params.toString()}`);
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-gray-950 pb-20 transition-colors duration-500">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-gray-950 pb-20 transition-colors duration-500 w-full overflow-hidden">
       
-      {/* --- NAVIGATION TACTIQUE (FIX MOBILE ABSOLU) --- */}
-      <div className="sticky top-0 z-30 backdrop-blur-md bg-white/70 dark:bg-gray-950/70 border-b border-gray-100 dark:border-gray-900 shadow-sm w-full">
+      <div className="sticky top-0 z-30 backdrop-blur-md bg-white/70 dark:bg-gray-950/70 border-b border-gray-100 dark:border-gray-900 shadow-sm w-full max-w-[100vw] overflow-hidden">
         
-        {/* 1. Zone Recherche (Contenue avec padding) */}
-        <div className="max-w-7xl mx-auto px-4 pt-4 md:pt-6 pb-4">
-          <form onSubmit={handleSearch} className="relative group max-w-3xl mx-auto w-full">
-            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 md:h-5 md:w-5 text-gray-300 group-focus-within:text-orange-500 transition-colors" />
-            </div>
-            <input
-              type="text"
-              name="search"
-              defaultValue={search}
-              placeholder="RECHERCHER DANS L'INVENTAIRE..."
-              className="block w-full pl-12 pr-4 py-3 md:pl-14 md:py-4 bg-gray-50 dark:bg-gray-900 border-transparent focus:border-orange-500 focus:bg-white dark:focus:bg-black focus:ring-4 focus:ring-orange-500/5 rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest text-gray-900 dark:text-gray-100 placeholder-gray-400 transition-all shadow-inner"
-            />
-          </form>
+        <div className="max-w-7xl mx-auto px-4 pt-4 md:pt-6 pb-4 w-full">
+          <div className="flex flex-col md:flex-row gap-3 max-w-3xl mx-auto w-full">
+            <form onSubmit={handleSearch} className="relative group flex-1 w-full min-w-0">
+              <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 md:h-5 md:w-5 text-gray-300 group-focus-within:text-orange-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                name="search"
+                defaultValue={search}
+                placeholder="RECHERCHER DANS L'INVENTAIRE..."
+                className="block w-full pl-12 pr-4 py-3 md:pl-14 md:py-4 bg-gray-50 dark:bg-gray-900 border-transparent focus:border-orange-500 focus:bg-white dark:focus:bg-black focus:ring-4 focus:ring-orange-500/5 rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest text-gray-900 dark:text-gray-100 placeholder-gray-400 transition-all shadow-inner"
+              />
+            </form>
+
+            <select 
+              className="bg-gray-50 dark:bg-gray-900 px-6 py-3 md:py-4 rounded-2xl border-transparent text-[10px] md:text-[11px] font-black uppercase tracking-widest focus:ring-orange-500 focus:border-orange-500 cursor-pointer text-gray-900 dark:text-gray-100 shadow-inner shrink-0 outline-none w-full md:w-auto"
+              onChange={(e) => {
+                const params = new URLSearchParams(window.location.search);
+                params.set("sort", e.target.value);
+                params.set("page", 1);
+                router.push(`${pathname}?${params.toString()}`);
+              }}
+            >
+              <option value="newest">Derniers Ajouts</option>
+              <option value="price_asc">Prix ↑</option>
+              <option value="price_desc">Prix ↓</option>
+            </select>
+          </div>
         </div>
 
-        {/* 2. Zone Catégories (Scroll "Edge-to-Edge" fluide et 100% sécurisé) */}
-        <div className="w-full pb-4 md:pb-6">
+        <div className="w-full">
           <div 
-            className="flex items-center gap-2 md:gap-3 overflow-x-auto scrollbar-hide px-4 max-w-7xl mx-auto w-full"
+            className="flex items-center gap-2 md:gap-3 overflow-x-auto scrollbar-hide px-4 pb-4 md:pb-6 max-w-7xl mx-auto w-full"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <Link href="/shop" className={`${!category ? CHIP_ACTIVE : CHIP_INACTIVE} shrink-0`}>
               TOUT VOIR
             </Link>
-            {categories.map((cat) => (
+            {sortedCategories.map((cat) => (
               <Link
                 key={cat}
                 href={`/shop?category=${encodeURIComponent(cat)}${search ? `&search=${search}` : ""}`}
@@ -94,13 +104,12 @@ export default function ShopClient({ initialData, search, category, page }) {
                 {cat}
               </Link>
             ))}
-            {/* Petit espace invisible à la fin pour que le dernier bouton ne colle pas à l'écran */}
-            <div className="w-2 shrink-0" />
+            <div className="w-1 shrink-0" />
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-10">
+      <div className="max-w-7xl mx-auto px-4 py-6 md:py-10">
         
         {!category && !search && banners.length > 0 && (
           <div className="mb-14 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl shadow-orange-500/10 border border-white dark:border-gray-900">
@@ -108,25 +117,23 @@ export default function ShopClient({ initialData, search, category, page }) {
           </div>
         )}
 
-        {/* HEADER SECTION */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4 border-l-4 border-orange-500 pl-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-4 border-l-4 border-orange-500 pl-4 md:pl-6">
           <div>
             <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.4em] mb-2">Hebron Inventory</p>
-            <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
+            <h1 className="text-2xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
               {search ? `Query: ${search}` : category ? category : "Nos Articles"}
             </h1>
           </div>
-          <div className="bg-gray-900 dark:bg-white px-4 py-2 rounded-xl self-start md:self-auto">
+          <div className="bg-gray-900 dark:bg-white px-4 py-2 rounded-xl self-start md:self-auto shrink-0">
              <p className="text-[10px] font-black text-white dark:text-gray-900 uppercase tracking-widest">
                {total} Unités détectées
              </p>
           </div>
         </div>
 
-        {/* GRID PRODUITS */}
-        {products.length > 0 ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-10">
-            {products.map((p) => {
+        {sortedProducts.length > 0 ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-10">
+            {sortedProducts.map((p) => {
               const realStock = p.stockAvailable ?? p.stock ?? 0;
               const isOutOfStock = realStock <= 0;
               const lowStock = realStock > 0 && realStock <= 5;
@@ -136,50 +143,50 @@ export default function ShopClient({ initialData, search, category, page }) {
                 <Link
                   key={p._id.toString()}
                   href={`/product/${p._id}`}
-                  className={`group relative flex flex-col bg-white dark:bg-gray-900 rounded-[1.5rem] md:rounded-[2rem] border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-500 ${isOutOfStock ? 'opacity-60' : 'hover:-translate-y-3 hover:shadow-3xl hover:shadow-orange-500/20'}`}
+                  className={`group relative flex flex-col bg-white dark:bg-gray-900 rounded-[1.25rem] md:rounded-[2rem] border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-500 ${isOutOfStock ? 'opacity-60' : 'hover:-translate-y-3 hover:shadow-3xl hover:shadow-orange-500/20'}`}
                 >
-                  <div className="absolute top-3 left-3 md:top-4 md:left-4 z-10 flex flex-col gap-2">
+                  <div className="absolute top-2 left-2 md:top-4 md:left-4 z-10 flex flex-col gap-2">
                     {isNew && !isOutOfStock && (
-                      <div className="bg-emerald-500 text-white text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1 shadow-lg">
+                      <div className="bg-emerald-500 text-white text-[7px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1 shadow-lg">
                         <Zap size={10} fill="currentColor" /> Nouveau
                       </div>
                     )}
                   </div>
 
-                  <div className="absolute top-3 right-3 md:top-4 md:right-4 z-10">
+                  <div className="absolute top-2 right-2 md:top-4 md:right-4 z-10">
                     {isOutOfStock ? (
-                      <div className="bg-gray-900 text-white text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 rounded-lg uppercase tracking-widest">Épuisé</div>
+                      <div className="bg-gray-900 text-white text-[7px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 rounded-lg uppercase tracking-widest">Épuisé</div>
                     ) : lowStock ? (
-                      <div className="bg-orange-500 text-white text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 rounded-lg uppercase tracking-widest animate-pulse flex items-center gap-1">
+                      <div className="bg-orange-500 text-white text-[7px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 rounded-lg uppercase tracking-widest animate-pulse flex items-center gap-1">
                         <Flame size={10} fill="currentColor" /> Vite !
                       </div>
                     ) : null}
                   </div>
 
-                  <div className="relative aspect-[4/5] w-full bg-[#f9fafb] dark:bg-gray-800/50 p-4 md:p-8 flex items-center justify-center overflow-hidden">
+                  <div className="relative aspect-square md:aspect-[4/5] w-full bg-[#f9fafb] dark:bg-gray-800/50 p-4 md:p-8 flex items-center justify-center overflow-hidden">
                     <img
                       src={p.imageUrl}
                       alt={p.name}
-                      className="object-contain transition-transform duration-700 ease-out group-hover:scale-110"
+                      className="object-contain max-h-full max-w-full transition-transform duration-700 ease-out group-hover:scale-110 mix-blend-multiply dark:mix-blend-normal"
                     />
                   </div>
 
-                  <div className="p-4 md:p-6 flex flex-col flex-1">
-                    <h2 className="text-[10px] md:text-sm font-black text-gray-800 dark:text-gray-100 line-clamp-2 uppercase tracking-tight mb-3 md:mb-4 group-hover:text-orange-500 transition-colors">
+                  <div className="p-3 md:p-6 flex flex-col flex-1">
+                    <h2 className="text-[10px] md:text-sm font-black text-gray-800 dark:text-gray-100 line-clamp-2 uppercase tracking-tight mb-2 md:mb-4 group-hover:text-orange-500 transition-colors">
                       {p.name}
                     </h2>
                     
-                    <div className="mt-auto space-y-4 md:space-y-5">
-                      <div className="text-lg md:text-2xl font-black text-gray-900 dark:text-white italic tracking-tighter">
+                    <div className="mt-auto space-y-3 md:space-y-5">
+                      <div className="text-sm md:text-2xl font-black text-gray-900 dark:text-white italic tracking-tighter">
                         {currencyFormatter.format(p.price)}
                       </div>
 
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em]">
+                      <div className="space-y-1 md:space-y-2">
+                        <div className="flex justify-between items-center text-[7px] md:text-[9px] font-black uppercase tracking-[0.1em]">
                           <span className={isOutOfStock ? "text-rose-500" : lowStock ? "text-orange-500" : "text-emerald-500"}>
                             {isOutOfStock ? "Rupture" : lowStock ? "Critique" : "Disponible"}
                           </span>
-                          {!isOutOfStock && <span className="text-gray-400 font-mono">{realStock} U.</span>}
+                          {!isOutOfStock && <span className="text-gray-400 font-mono hidden md:inline">{realStock} U.</span>}
                         </div>
                         <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                           {!isOutOfStock && (
@@ -197,38 +204,35 @@ export default function ShopClient({ initialData, search, category, page }) {
             })}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-32 text-center bg-white dark:bg-gray-900 rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-800">
-            <PackageOpen size={64} className="text-gray-200 dark:text-gray-800 mb-6" />
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase italic">Aucun résultat</h3>
-            <Link href="/shop" className="px-10 py-4 mt-10 bg-orange-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-gray-900 transition-colors">
+          <div className="flex flex-col items-center justify-center py-20 md:py-32 text-center bg-white dark:bg-gray-900 rounded-[2rem] md:rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-800 mx-4">
+            <PackageOpen size={48} className="text-gray-200 dark:text-gray-800 mb-4 md:mb-6" />
+            <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white uppercase italic">Aucun résultat</h3>
+            <Link href="/shop" className="px-8 md:px-10 py-3 md:py-4 mt-8 md:mt-10 bg-orange-500 text-white font-black text-[9px] md:text-[10px] uppercase tracking-widest rounded-2xl hover:bg-gray-900 transition-colors">
               Réinitialiser les filtres
             </Link>
           </div>
         )}
 
-        {/* --- PAGINATION MODERNE --- */}
         {totalPages > 1 && (
-          <div className="mt-16 md:mt-20 flex flex-wrap justify-center items-center gap-2 md:gap-3">
+          <div className="mt-12 md:mt-20 flex flex-wrap justify-center items-center gap-2 md:gap-3">
             {generatePagination(page, totalPages).map((item, index) => {
-              // Rendu des points de suspension
               if (item === "...") {
                 return (
                   <span 
                     key={`ellipsis-${index}`} 
-                    className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-gray-400 font-black tracking-widest"
+                    className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center text-gray-400 font-black tracking-widest"
                   >
                     ...
                   </span>
                 );
               }
 
-              // Rendu des boutons cliquables
               return (
                 <Link
                   key={item}
                   href={`/shop?page=${item}${search ? `&search=${search}` : ""}${category ? `&category=${category}` : ""}`}
                   className={`
-                    w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl md:rounded-2xl font-black text-xs transition-all
+                    w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl font-black text-[10px] md:text-xs transition-all
                     ${page === item 
                       ? "bg-orange-500 text-white shadow-xl shadow-orange-500/40 scale-110" 
                       : "bg-white dark:bg-gray-900 text-gray-400 hover:text-orange-500 border border-gray-100 dark:border-gray-800"

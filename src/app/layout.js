@@ -1,6 +1,5 @@
 import "./globals.css";
 import Providers from "./providers";
-import AuthProvider from "@/components/providers/AuthProvider";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getServerSession } from "next-auth";
@@ -22,16 +21,14 @@ export default async function RootLayout({ children }) {
   }
 
   return (
-    <html lang="fr" className="h-full">
-      <body className="bg-gray-50 flex flex-col min-h-screen antialiased">
+    <html lang="fr" className="h-full overflow-x-hidden">
+      <body className="bg-gray-50 flex flex-col min-h-screen antialiased overflow-x-hidden w-full max-w-[100vw]">
         <Providers session={session}>
           <Header />
           
-          <AuthProvider>
-            <main className="flex-1">
-              {children}
-            </main>
-          </AuthProvider>
+          <main className="flex-1 w-full">
+            {children}
+          </main>
           
           <Footer />
           

@@ -1,46 +1,50 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-// Note: Le sanitize sur un FormData se fait différemment, 
-// mais pour un nom de fichier, le replaceAll suffit ici.
+import { v2 as cloudinary } from "cloudinary";
+
+// 1. Configuration Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(req) {
   try {
-    // 1. On récupère directement le FormData (SANS appeler req.json())
     const data = await req.formData();
-    const file = data.get("file");
+    const file = data.get("file"); // Assure-toi que c'est bien "file" dans ton frontend
 
     if (!file || typeof file === "string") {
       return NextResponse.json({ error: "Aucun fichier fourni" }, { status: 400 });
     }
 
+    // 2. Conversion en Buffer (on garde cette partie)
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // 2. Créer le chemin du dossier d'upload
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    
-    // 3. S'assurer que le dossier existe
-    await mkdir(uploadDir, { recursive: true });
+    // 3. ENVOI VERS CLOUDINARY (Remplace fs.writeFile)
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { 
+          folder: "hebron_uploads",
+          resource_type: "auto" 
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      // On injecte le buffer dans le flux Cloudinary
+      uploadStream.end(buffer);
+    });
 
-    // 4. Créer un nom de fichier unique et nettoyé
-    // On sanitize le nom du fichier pour éviter les caractères spéciaux
-    const safeName = file.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
-    const uniqueName = `${Date.now()}-${safeName}`;
-    const filePath = path.join(uploadDir, uniqueName);
+    // 4. On retourne l'URL CLOUDINARY sécurisée
+    // Ce sera une URL type https://res.cloudinary.com/...
+    return NextResponse.json({ url: uploadResult.secure_url });
 
-    // 5. Écrire le fichier sur le disque
-    await writeFile(filePath, buffer);
-    
-    // 6. Retourner l'URL publique
-    const url = `/uploads/${uniqueName}`;
-    
-    return NextResponse.json({ url });
   } catch (error) {
-    console.error("Upload Error:", error);
-    // On retourne une réponse JSON propre même en cas d'erreur
+    console.error("Cloudinary Upload Error:", error);
     return NextResponse.json({ 
-      error: "Échec de l'upload", 
+      error: "Échec de l'upload vers Cloudinary", 
       details: error.message 
     }, { status: 500 });
   }

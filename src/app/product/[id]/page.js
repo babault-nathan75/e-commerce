@@ -6,13 +6,14 @@ import AddToCartButton from "./ui/AddToCartButton";
 import FavoriteButton from "./ui/FavoriteButton";
 import ReviewsBox from "./ui/ReviewsBox";
 import StarRating from "@/components/ui/StarRating";
+// 👇 1. Importez votre nouveau bouton client
+import BackButton from "@/components/ui/BackButton"; 
 import { 
   Box, 
   AlertTriangle, 
   CheckCircle2, 
   Truck, 
   ShieldCheck, 
-  ArrowLeft,
   Share2
 } from "lucide-react";
 import Link from "next/link";
@@ -53,8 +54,7 @@ export default async function ProductDetailsPage({ params }) {
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : 0;
 
-  // ✅ 1. CALCUL DU STOCK SÉCURISÉ
-  // On vérifie stockAvailable ET stock pour être sûr de ne rien rater
+  // ✅ CALCUL DU STOCK SÉCURISÉ
   const stockQty = Number(p.stockAvailable ?? p.stock ?? 0);
   const isOutOfStock = stockQty <= 0;
   const isLowStock = stockQty > 0 && stockQty <= 5;
@@ -65,10 +65,10 @@ export default async function ProductDetailsPage({ params }) {
         
         {/* --- NAVIGATION / BREADCRUMB --- */}
         <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
-          <Link href="/" className="group flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-black dark:hover:text-white transition-colors">
-            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-            Retour
-          </Link>
+          
+          {/* 👇 2. Utilisez le composant au lieu de <Link> */}
+          <BackButton />
+
           <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             <Share2 size={18} className="text-gray-500" />
           </button>
@@ -77,7 +77,7 @@ export default async function ProductDetailsPage({ params }) {
         <div className="max-w-7xl mx-auto px-6 pb-20">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-20">
             
-            {/* COLONNE GAUCHE : IMAGE (Lg: 7/12) */}
+            {/* COLONNE GAUCHE : IMAGE */}
             <div className="lg:col-span-7">
               <div className="relative aspect-square bg-gray-50 dark:bg-gray-900 rounded-[2.5rem] overflow-hidden border border-gray-100 dark:border-gray-800 flex items-center justify-center group">
                 <img
@@ -100,7 +100,7 @@ export default async function ProductDetailsPage({ params }) {
               </div>
             </div>
 
-            {/* COLONNE DROITE : INFOS (Lg: 5/12) */}
+            {/* COLONNE DROITE : INFOS */}
             <div className="lg:col-span-5 flex flex-col justify-center">
               
               {/* Badge Catégorie / Statut */}
@@ -142,7 +142,6 @@ export default async function ProductDetailsPage({ params }) {
               <div className="space-y-4 mb-10">
                 <div className="flex flex-col sm:flex-row items-stretch gap-4">
                   <div className="flex-1">
-                    {/* ✅ 2. MODIFICATION ICI : On passe 'disabled' et 'stockAvailable' */}
                     <AddToCartButton
                       disabled={isOutOfStock}
                       product={{
@@ -150,7 +149,7 @@ export default async function ProductDetailsPage({ params }) {
                         name: p.name,
                         price: p.price,
                         imageUrl: p.imageUrl,
-                        stockAvailable: stockQty // CRUCIAL pour le blocage dans le panier
+                        stockAvailable: stockQty
                       }}
                     />
                   </div>

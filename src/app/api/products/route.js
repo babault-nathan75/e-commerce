@@ -1,72 +1,86 @@
 import { NextResponse } from "next/server";
+import { v2 as cloudinary } from "cloudinary";
 import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { Product } from "@/models/Product";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import sanitize from 'mongo-sanitize';
 
-// 1. Mise à jour du schéma de validation pour inclure le STOCK
+// Configuration Cloudinary (à placer dans vos variables d'environnement)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 const ProductSchema = z.object({
   name: z.string().min(2),
-  price: z.number().min(0),
-  stock: z.number().min(0).default(0), // 👈 Ajouté ici
-  imageUrl: z.string().min(2),
+  price: z.coerce.number().min(0),
+  stock: z.coerce.number().min(0).default(0),
   description: z.string().min(5),
   channel: z.enum(["shop", "library"]),
   productType: z.enum(["physical", "digital"]).default("physical"),
-  category: z.array(z.string()).optional().default([])
+  category: z.array(z.string()).optional().default([]),
 });
-
-export async function GET(req) {
-  await connectDB();
-  const { searchParams } = new URL(req.url);
-  const channel = searchParams.get("channel");
-
-  const filter = {};
-  if (channel === "shop" || channel === "library") filter.channel = channel;
-
-  const products = await Product.find(filter).sort({ createdAt: -1 });
-  return NextResponse.json({ ok: true, products });
-}
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
-  
-  // Vérification de sécurité
   if (!session?.user?.isAdmin) {
-    return NextResponse.json({ error: "Interdit : Accès Admin requis" }, { status: 403 });
+    return NextResponse.json({ error: "Accès Admin requis" }, { status: 403 });
   }
 
   try {
-    await connectDB();
-    const body = await req.json();
-    const cleanBody = sanitize(body);
+    const formData = await req.formData();
+    const imageFile = formData.get("image"); // Récupère le fichier binaire
 
-    // 2. Conversion des types avant la validation Zod
-    // Le FormData envoie souvent des strings, on les convertit en nombres
-    const preparedData = {
-      ...cleanBody,
-      price: Number(cleanBody.price),
-      stock: Number(cleanBody.stock) || 0,
+    if (!imageFile) {
+      return NextResponse.json({ error: "L'image est manquante" }, { status: 400 });
+    }
+
+    // 1. Conversion du fichier en Buffer pour Cloudinary
+    const bytes = await imageFile.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // 2. Upload vers Cloudinary via un Promise
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: "votre_dossier_produits" },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      uploadStream.end(buffer);
+    });
+
+    // 3. Validation des données textuelles
+    const rawData = {
+      name: formData.get("name"),
+      price: formData.get("price"),
+      stock: formData.get("stock"),
+      description: formData.get("description"),
+      channel: formData.get("channel"),
+      productType: formData.get("productType"),
+      // On parse la catégorie car elle arrive souvent sous forme de string JSON via FormData
+      category: formData.get("category") ? JSON.parse(formData.get("category")) : [],
     };
 
-    // 3. Validation avec Zod
-    const validatedData = ProductSchema.parse(preparedData);
+    const validatedData = ProductSchema.parse(rawData);
 
-    // 4. Une seule création en base de données
-    const newProduct = await Product.create(validatedData);
+    // 4. Sauvegarde en Base de données
+    await connectDB();
+    const newProduct = await Product.create({
+      ...validatedData,
+      imageUrl: uploadResult.secure_url, // On utilise l'URL retournée par Cloudinary
+    });
 
     return NextResponse.json(newProduct, { status: 201 });
 
   } catch (error) {
-    console.error("Erreur API:", error);
-    
-    // Gestion des erreurs de validation Zod
+    console.error("Erreur Upload/DB:", error);
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Données invalides", details: error.errors }, { status: 400 });
     }
-
-    return NextResponse.json({ error: "Erreur lors de la création de l'article" }, { status: 500 });
+    return NextResponse.json({ error: "Erreur lors de la création du produit" }, { status: 500 });
   }
 }

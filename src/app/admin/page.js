@@ -1,19 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { UtensilsCrossed } from "lucide-react";
 import { useEffect, useState } from "react";
+// ✅ AJOUT DE 'Package' DANS LES IMPORTS
 import { 
   Users, ShoppingBag, BarChart3, Image as ImageIcon, ChevronDown, 
   BookOpen, Store, TrendingUp, TrendingDown, LayoutDashboard, 
   MessageSquare, Star, Edit3, Trash2, X, Loader2, Save, PlusCircle, DollarSign,
-  Calendar 
+  Calendar, UtensilsCrossed, Package
 } from "lucide-react";
 
 // --- UNITÉ ANALYTIQUE TREMOR ---
 import { 
   Card, AreaChart, BarChart, Metric, Text, Flex, BadgeDelta, 
-  Grid, TabGroup, TabList, Tab
+  Grid
 } from "@tremor/react";
 
 export default function AdminHome() {
@@ -127,7 +127,6 @@ export default function AdminHome() {
           </div>
 
           <nav className="flex items-center flex-wrap justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md">
-            {/* Badges sur les notifications (Ex: data.notifications.users) */}
             <AdminNav href="/admin/users" title="Clients" count={data?.notifications?.users}>
               <Users size={18} />
             </AdminNav>
@@ -170,6 +169,11 @@ export default function AdminHome() {
               )}
             </div>
             
+            {/* ✅ AJOUT DU BOUTON PRODUITS ICI */}
+            <AdminNav href="/admin/products" title="Produits" count={data?.notifications?.products}>
+                <Package size={18} />
+            </AdminNav>
+
             <AdminNav href="/admin/gastronomie" title="Gastronomie" count={data?.notifications?.gastronomy}>
                 <UtensilsCrossed size={18} />
             </AdminNav>

@@ -108,7 +108,6 @@ export async function GET(_req, context) {
 }
 
 // --- ⚙️ MÉTHODE : PUT (MODIFICATION AVEC OPTION IMAGE) ---
-// --- ⚙️ MÉTHODE : PUT (MODIFICATION AVEC OPTION IMAGE) ---
 export async function PUT(req, context) {
   try {
     const { id } = await context.params;
@@ -124,12 +123,12 @@ export async function PUT(req, context) {
     const product = await Product.findById(id);
     if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // 1. Gestion de l'image
+    // 1. Gestion de l'image (Upload seulement si un nouveau fichier est présent)
     let imageUrl = product.imageUrl;
     const newImage = formData.get("image");
     
-    // On vérifie que c'est bien un fichier et pas une string ou du vide
     if (newImage && typeof newImage !== "string" && newImage.size > 0) {
+      // Si on arrive ici, l'image est envoyée à Cloudinary
       imageUrl = await uploadToCloudinary(newImage);
     }
 
@@ -138,10 +137,12 @@ export async function PUT(req, context) {
     const fields = ["name", "price", "description", "channel", "productType", "stock"];
     
     fields.forEach(f => {
-      const val = formData.get(f);
-      // On n'ajoute au schéma que si la valeur n'est pas nulle ou vide
-      if (val !== null && val !== "") {
-        rawUpdate[f] = val;
+      if (formData.has(f)) {
+        const val = formData.get(f);
+        // On n'ajoute que si la valeur n'est pas vide pour éviter les erreurs de type Zod
+        if (val !== null && val !== "") {
+          rawUpdate[f] = val;
+        }
       }
     });
 
@@ -151,30 +152,35 @@ export async function PUT(req, context) {
       try {
         rawUpdate.category = typeof catData === "string" ? JSON.parse(catData) : catData;
       } catch (e) {
-        rawUpdate.category = []; // Fallback si le JSON est invalide
+        rawUpdate.category = product.category; // Garde l'ancienne si erreur JSON
       }
     }
 
+    // On s'assure que l'imageUrl (nouvelle ou ancienne) est présente pour la validation
     rawUpdate.imageUrl = imageUrl;
 
-    // Validation Zod avec capture d'erreur détaillée
+    // 3. Validation Zod avec safeParse (pour ne pas crasher si un champ est invalide)
     const result = UpdateSchema.safeParse(rawUpdate);
+    
     if (!result.success) {
-      console.error("❌ Erreur Validation Zod:", result.error.format());
+      // 🚨 REGARDEZ VOTRE TERMINAL : Il affichera précisément quel champ pose problème
+      console.error("❌ Erreur Validation Zod détaillée:", JSON.stringify(result.error.format(), null, 2));
+      
       return NextResponse.json({ 
-        error: "Données invalides", 
+        error: "Mise à jour échouée : Données invalides", 
         details: result.error.format() 
       }, { status: 400 });
     }
 
     const data = result.data;
 
-    // 3. Logique de stock (Mise à jour simultanée de stock et stockAvailable)
+    // 4. Logique de stock (Mise à jour simultanée)
     if (data.stock !== undefined) {
       const newStock = Number(data.stock);
       product.stock = newStock;
       product.stockAvailable = newStock;
 
+      // Alerte stock faible
       if (product.stockAvailable <= 5) {
         const isOutOfStock = product.stockAvailable === 0;
         const alertTitle = isOutOfStock ? "🔴 RUPTURE DE STOCK" : "⚠️ STOCK FAIBLE";
@@ -183,21 +189,30 @@ export async function PUT(req, context) {
         const adminEmails = admins.map(a => a.email).filter(Boolean);
 
         if (adminEmails.length > 0) {
-          await sendOrderEmail({
-            to: adminEmails[0],
-            bcc: adminEmails.slice(1).join(","),
-            subject: `${alertTitle} : ${product.name}`,
-            html: `<p>Produit: <b>${product.name}</b><br>Nouveau Stock: <b>${product.stockAvailable}</b></p>`
-          });
+          try {
+            await sendOrderEmail({
+              to: adminEmails[0],
+              bcc: adminEmails.slice(1).join(","),
+              subject: `${alertTitle} : ${product.name}`,
+              html: `<p>Produit: <b>${product.name}</b><br>Nouveau Stock: <b>${product.stockAvailable}</b></p>`
+            });
+          } catch (mailErr) {
+            console.error("Mail Alert Error:", mailErr);
+          }
         }
         await notifyAdmins({ title: alertTitle, message: `${product.name} (${product.stockAvailable})` });
       }
-      // On retire stock pour ne pas que Object.assign crée un doublon ou conflit
+      // On retire stock de 'data' pour que Object.assign ne crée pas de conflit avec les setters de Mongoose
       delete data.stock;
     }
 
-    // 4. Mise à jour finale
+    // 5. Sauvegarde finale
+    // On met à jour l'URL de l'image dans l'objet product
+    product.imageUrl = imageUrl;
+    
+    // On fusionne les autres modifications validées
     Object.assign(product, data);
+    
     await product.save();
 
     return NextResponse.json({ ok: true, product });
@@ -207,7 +222,6 @@ export async function PUT(req, context) {
     return NextResponse.json({ error: "Erreur serveur", details: err?.message }, { status: 500 });
   }
 }
-
 // --- 🗑️ MÉTHODE : DELETE ---
 export async function DELETE(_req, { params }) {
   const { id } = await params;

@@ -110,9 +110,11 @@ export async function GET(_req, context) {
 // --- ⚙️ MÉTHODE : PUT (MODIFICATION AVEC OPTION IMAGE) ---
 export async function PUT(req, context) {
   try {
-    const { id } = await context.params;
+    // 1. Récupération sécurisée de l'ID (Next.js 15 demande souvent un await ici)
+    const params = await context.params;
+    const id = params.id;
+
     const session = await getServerSession(authOptions);
-    
     if (!session?.user?.isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -121,107 +123,105 @@ export async function PUT(req, context) {
     await connectDB();
     
     const product = await Product.findById(id);
-    if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!product) return NextResponse.json({ error: "Produit non trouvé" }, { status: 404 });
 
-    // 1. Gestion de l'image (Upload seulement si un nouveau fichier est présent)
+    // 2. Gestion de l'image (Cloudinary)
     let imageUrl = product.imageUrl;
     const newImage = formData.get("image");
     
+    // Si c'est un fichier réel (pas une string) et qu'il n'est pas vide
     if (newImage && typeof newImage !== "string" && newImage.size > 0) {
-      // Si on arrive ici, l'image est envoyée à Cloudinary
+      console.log("☁️ Début upload Cloudinary...");
       imageUrl = await uploadToCloudinary(newImage);
     }
 
-    // 2. Extraction et nettoyage des données
-    const rawUpdate = {};
-    const fields = ["name", "price", "description", "channel", "productType", "stock"];
-    
-    fields.forEach(f => {
-      if (formData.has(f)) {
-        const val = formData.get(f);
-        // On n'ajoute que si la valeur n'est pas vide pour éviter les erreurs de type Zod
-        if (val !== null && val !== "") {
-          rawUpdate[f] = val;
-        }
-      }
-    });
+    // 3. Extraction et nettoyage manuel des données
+    const rawUpdate = {
+      name: formData.get("name") || product.name,
+      price: formData.get("price") !== "" ? formData.get("price") : product.price,
+      description: formData.get("description") || product.description,
+      channel: formData.get("channel") || product.channel,
+      productType: formData.get("productType") || product.productType || "physical",
+      stock: formData.get("stock") !== "" ? formData.get("stock") : product.stock,
+      imageUrl: imageUrl // On utilise l'URL Cloudinary (ou l'ancienne)
+    };
 
-    // Gestion sécurisée des catégories
+    // Parsing sécurisé de la catégorie
     if (formData.has("category")) {
-      const catData = formData.get("category");
       try {
+        const catData = formData.get("category");
         rawUpdate.category = typeof catData === "string" ? JSON.parse(catData) : catData;
       } catch (e) {
-        rawUpdate.category = product.category; // Garde l'ancienne si erreur JSON
+        rawUpdate.category = product.category;
       }
     }
 
-    // On s'assure que l'imageUrl (nouvelle ou ancienne) est présente pour la validation
-    rawUpdate.imageUrl = imageUrl;
-
-    // 3. Validation Zod avec safeParse (pour ne pas crasher si un champ est invalide)
-    const result = UpdateSchema.safeParse(rawUpdate);
+    // 4. Validation Zod (Version safe pour éviter le crash 500)
+    const validation = UpdateSchema.safeParse(rawUpdate);
     
-    if (!result.success) {
-      // 🚨 REGARDEZ VOTRE TERMINAL : Il affichera précisément quel champ pose problème
-      console.error("❌ Erreur Validation Zod détaillée:", JSON.stringify(result.error.format(), null, 2));
-      
+    if (!validation.success) {
+      console.error("❌ ZOD ERROR:", validation.error.format());
       return NextResponse.json({ 
-        error: "Mise à jour échouée : Données invalides", 
-        details: result.error.format() 
+        error: "Données invalides", 
+        details: validation.error.format() 
       }, { status: 400 });
     }
 
-    const data = result.data;
+    const data = validation.data;
 
-    // 4. Logique de stock (Mise à jour simultanée)
+    // 5. Logique de Stock et Alertes
     if (data.stock !== undefined) {
       const newStock = Number(data.stock);
       product.stock = newStock;
       product.stockAvailable = newStock;
 
-      // Alerte stock faible
       if (product.stockAvailable <= 5) {
-        const isOutOfStock = product.stockAvailable === 0;
-        const alertTitle = isOutOfStock ? "🔴 RUPTURE DE STOCK" : "⚠️ STOCK FAIBLE";
-        
-        const admins = await User.find({ isAdmin: true }).select("email");
-        const adminEmails = admins.map(a => a.email).filter(Boolean);
+        try {
+          const isOutOfStock = product.stockAvailable === 0;
+          const alertTitle = isOutOfStock ? "🔴 RUPTURE" : "⚠️ STOCK FAIBLE";
+          
+          const admins = await User.find({ isAdmin: true }).select("email");
+          const adminEmails = admins.map(a => a.email).filter(Boolean);
 
-        if (adminEmails.length > 0) {
-          try {
+          if (adminEmails.length > 0) {
             await sendOrderEmail({
               to: adminEmails[0],
               bcc: adminEmails.slice(1).join(","),
               subject: `${alertTitle} : ${product.name}`,
-              html: `<p>Produit: <b>${product.name}</b><br>Nouveau Stock: <b>${product.stockAvailable}</b></p>`
+              html: `<p>Produit: <b>${product.name}</b> - Stock actuel: <b>${product.stockAvailable}</b></p>`
             });
-          } catch (mailErr) {
-            console.error("Mail Alert Error:", mailErr);
           }
+          await notifyAdmins({ title: alertTitle, message: `${product.name} (${product.stockAvailable})` });
+        } catch (notifErr) {
+          console.error("Notif Error (non-bloquant):", notifErr);
         }
-        await notifyAdmins({ title: alertTitle, message: `${product.name} (${product.stockAvailable})` });
       }
-      // On retire stock de 'data' pour que Object.assign ne crée pas de conflit avec les setters de Mongoose
+      // On retire stock pour éviter les conflits lors de l'Object.assign
       delete data.stock;
     }
 
-    // 5. Sauvegarde finale
-    // On met à jour l'URL de l'image dans l'objet product
+    // 6. Sauvegarde finale
+    // On force l'application de l'URL Cloudinary
     product.imageUrl = imageUrl;
     
-    // On fusionne les autres modifications validées
+    // On fusionne le reste des données validées
     Object.assign(product, data);
     
     await product.save();
+    console.log("✅ Produit mis à jour avec succès. URL:", product.imageUrl);
 
     return NextResponse.json({ ok: true, product });
 
   } catch (err) {
-    console.error("💥 PUT PRODUCT ERROR:", err);
-    return NextResponse.json({ error: "Erreur serveur", details: err?.message }, { status: 500 });
+    // Ce log s'affichera sur ton terminal en cas de 500
+    console.error("💥 CRITICAL PUT ERROR:", err);
+    return NextResponse.json({ 
+      error: "Erreur serveur lors de la mise à jour", 
+      details: err.message 
+    }, { status: 500 });
   }
 }
+
 // --- 🗑️ MÉTHODE : DELETE ---
 export async function DELETE(_req, { params }) {
   const { id } = await params;

@@ -71,19 +71,6 @@ export default function ShopClient({ initialData, search, category, page }) {
               />
             </form>
 
-            <select 
-              className="bg-gray-50 dark:bg-gray-900 px-6 py-3 md:py-4 rounded-2xl border-transparent text-[10px] md:text-[11px] font-black uppercase tracking-widest focus:ring-orange-500 focus:border-orange-500 cursor-pointer text-gray-900 dark:text-gray-100 shadow-inner shrink-0 outline-none w-full md:w-auto"
-              onChange={(e) => {
-                const params = new URLSearchParams(window.location.search);
-                params.set("sort", e.target.value);
-                params.set("page", 1);
-                router.push(`${pathname}?${params.toString()}`);
-              }}
-            >
-              <option value="newest">Derniers Ajouts</option>
-              <option value="price_asc">Prix ↑</option>
-              <option value="price_desc">Prix ↓</option>
-            </select>
           </div>
         </div>
 
@@ -116,20 +103,6 @@ export default function ShopClient({ initialData, search, category, page }) {
              <BannerCarousel banners={banners} />
           </div>
         )}
-
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-4 border-l-4 border-orange-500 pl-4 md:pl-6">
-          <div>
-            <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.4em] mb-2">Hebron Inventory</p>
-            <h1 className="text-2xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
-              {search ? `Query: ${search}` : category ? category : "Nos Articles"}
-            </h1>
-          </div>
-          <div className="bg-gray-900 dark:bg-white px-4 py-2 rounded-xl self-start md:self-auto shrink-0">
-             <p className="text-[10px] font-black text-white dark:text-gray-900 uppercase tracking-widest">
-               {total} Unités détectées
-             </p>
-          </div>
-        </div>
 
         {sortedProducts.length > 0 ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-10">

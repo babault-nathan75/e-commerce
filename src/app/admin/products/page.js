@@ -10,41 +10,28 @@ import {
   Edit3, 
   AlertTriangle,
   ChevronRight,
-  Search 
+  Search,
+  Hash
 } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function AdminProductsPage({ searchParams }) {
   const params = await searchParams;
   const channel = params.channel || "";
-  // On décode la catégorie pour gérer les accents et caractères spéciaux de l'URL
   const category = params.category ? decodeURIComponent(params.category) : "";
   const searchTerm = params.q || "";
 
   await connectDB();
 
-  // --- LOGIQUE DE RECHERCHE OPTIMISÉE ---
   const query = {};
-  
-  if (channel) {
-    query.channel = channel;
-  }
-
-  if (category) {
-    // Utilisation d'une Regex pour correspondre exactement mais sans être bloqué par la casse
-    // ou des espaces invisibles en fin de chaîne dans la DB
-    query.category = { $regex: new RegExp(`^${category}$`, "i") };
-  }
-
-  if (searchTerm) {
-    query.name = { $regex: searchTerm, $options: "i" };
-  }
+  if (channel) query.channel = channel;
+  if (category) query.category = { $regex: new RegExp(`^${category}$`, "i") };
+  if (searchTerm) query.name = { $regex: searchTerm, $options: "i" };
 
   const products = await Product.find(query)
     .sort({ stockAvailable: 1, createdAt: -1 })
     .lean();
 
-  // Action pour gérer la soumission du formulaire
   async function handleSearch(formData) {
     "use server";
     const q = formData.get("q");
@@ -52,52 +39,53 @@ export default async function AdminProductsPage({ searchParams }) {
     if (channel) urlParams.set("channel", channel);
     if (category) urlParams.set("category", category);
     if (q) urlParams.set("q", q);
-    
     redirect(`/admin/products?${urlParams.toString()}`);
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-20">
-      <div className="max-w-7xl mx-auto p-6 md:p-10">
+    <div className="min-h-screen bg-[#f8fafc] pb-20 selection:bg-orange-100">
+      <div className="max-w-7xl mx-auto p-4 md:p-10">
         
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <Link href="/admin" className="p-2 bg-white rounded-xl border border-gray-100 text-gray-400 hover:text-orange-500 transition-colors shadow-sm">
-                <ArrowLeft size={18} />
-              </Link>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-                Administration <ChevronRight size={10} /> Inventaire
+        <div className="flex flex-col gap-8 mb-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Link href="/admin" className="p-2.5 bg-white rounded-xl border border-gray-200 text-gray-400 hover:text-orange-500 hover:border-orange-200 transition-all shadow-sm">
+                  <ArrowLeft size={20} />
+                </Link>
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+                  Admin <ChevronRight size={10} /> <span className="text-gray-900">Inventaire</span>
+                </div>
               </div>
+              
+              <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tighter uppercase italic flex items-baseline gap-3">
+                {channel === "library" ? <BookOpen className="text-blue-600 shrink-0" size={32} /> : <Store className="text-emerald-500 shrink-0" size={32} />}
+                <span className="truncate max-w-[250px] md:max-w-none">{category || "Global"}</span>
+                <span className="text-xl font-bold text-orange-500 not-italic">({products.length})</span>
+              </h1>
             </div>
-            
-            <h1 className="text-4xl font-black text-gray-900 tracking-tighter uppercase italic flex items-center gap-4">
-              {channel === "library" ? <BookOpen className="text-blue-600" size={32} /> : <Store className="text-emerald-500" size={32} />}
-              {category || "Inventaire Global"}
-              <span className="text-lg font-bold text-gray-300 not-italic ml-2">[{products.length}]</span>
-            </h1>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <form action={handleSearch} className="relative group min-w-[300px]">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
-              <input 
-                name="q"
-                type="text"
-                defaultValue={searchTerm}
-                placeholder="Rechercher une référence..."
-                className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-orange-500 shadow-sm transition-all"
-              />
-            </form>
 
             <Link
               href="/admin/products/new"
-              className="bg-gray-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 transition-all shadow-xl shadow-gray-200 flex items-center justify-center gap-2"
+              className="group bg-gray-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 transition-all shadow-xl shadow-gray-200 flex items-center justify-center gap-2 active:scale-95"
             >
-              <Plus size={18} /> Ajouter
+              <Plus size={18} className="group-hover:rotate-90 transition-transform" /> 
+              Nouveau Produit
             </Link>
           </div>
+
+          {/* --- BARRE DE RECHERCHE --- */}
+          <form action={handleSearch} className="relative w-full">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input 
+              name="q"
+              type="text"
+              defaultValue={searchTerm}
+              placeholder="Rechercher par nom ou référence..."
+              className="w-full pl-14 pr-4 py-5 bg-white border border-gray-200 rounded-3xl text-sm font-bold uppercase tracking-widest focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 shadow-sm transition-all placeholder:text-gray-300"
+            />
+          </form>
         </div>
 
         {/* --- LISTE D'INVENTAIRE --- */}
@@ -110,68 +98,84 @@ export default async function AdminProductsPage({ searchParams }) {
               return (
                 <div
                   key={p._id.toString()}
-                  className="bg-white border border-gray-100 rounded-[2rem] p-4 flex flex-col md:flex-row items-center gap-6 hover:shadow-2xl hover:shadow-gray-200/50 transition-all group"
+                  className="bg-white border border-gray-100 rounded-[2.5rem] p-4 md:p-6 flex flex-col md:flex-row items-center gap-6 hover:shadow-2xl hover:shadow-gray-200/60 transition-all group relative overflow-hidden"
                 >
-                  <div className="w-24 h-24 bg-gray-50 rounded-3xl overflow-hidden flex-shrink-0 p-2 border border-gray-50">
+                  {/* Badge d'ID ou Type au survol */}
+                  <div className="absolute top-4 right-6 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex items-center gap-1 text-[8px] font-bold text-gray-300 uppercase">
+                    <Hash size={10} /> {p._id.toString().slice(-6)}
+                  </div>
+
+                  {/* Image Container */}
+                  <div className="w-full md:w-32 h-40 md:h-32 bg-gray-50 rounded-[1.8rem] overflow-hidden flex-shrink-0 p-4 border border-gray-100 group-hover:border-orange-100 transition-colors">
                     <img
                       src={p.imageUrl}
                       alt={p.name}
-                      className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-700"
                     />
                   </div>
 
-                  <div className="flex-1 text-center md:text-left min-w-0">
-                    <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                      <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
-                        p.channel === "library" ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"
+                  {/* Infos */}
+                  <div className="flex-1 text-center md:text-left w-full min-w-0">
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-3">
+                      <span className={`text-[8px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider ${
+                        p.channel === "library" ? "bg-blue-600 text-white" : "bg-emerald-600 text-white"
                       }`}>
-                        {p.channel === "library" ? "Digital/Livre" : "Boutique"}
+                        {p.channel === "library" ? "Livre" : "Boutique"}
                       </span>
-                      <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">
-                        {p.category || "Standard"}
+                      <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-lg">
+                        {p.category || "Sans catégorie"}
                       </span>
                     </div>
-                    <h2 className="font-black text-xl text-gray-900 truncate leading-tight mb-1 italic uppercase tracking-tighter">
+                    
+                    <h2 className="font-black text-xl md:text-2xl text-gray-900 truncate leading-none mb-2 italic uppercase tracking-tighter">
                       {p.name}
                     </h2>
-                    <p className="text-orange-500 font-black text-lg tracking-tighter">
-                      {p.price.toLocaleString()} <span className="text-[10px] uppercase opacity-60">FCFA</span>
+                    <p className="text-orange-500 font-black text-xl tracking-tighter">
+                      {p.price.toLocaleString()} <span className="text-[10px] uppercase opacity-60 ml-0.5">FCFA</span>
                     </p>
                   </div>
 
-                  <div className={`flex flex-col items-center justify-center px-6 py-3 rounded-2xl border-2 min-w-[120px] ${
+                  {/* Stock Statut */}
+                  <div className={`flex items-center gap-4 w-full md:w-auto justify-between md:justify-end px-6 py-4 md:py-2 rounded-[1.5rem] border ${
                     isOut ? "bg-rose-50 border-rose-100 text-rose-600" : 
                     isLowStock ? "bg-orange-50 border-orange-100 text-orange-600" : 
                     "bg-emerald-50 border-emerald-100 text-emerald-600"
                   }`}>
-                    <span className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-60">Stock</span>
-                    <div className="flex items-center gap-2">
-                      {isOut && <AlertTriangle size={14} />}
-                      <span className="text-xl font-black font-mono">{p.stockAvailable}</span>
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-black uppercase tracking-widest opacity-60">Quantité</span>
+                      <div className="flex items-center gap-2">
+                        {isOut && <AlertTriangle size={14} className="animate-pulse" />}
+                        <span className="text-2xl font-black font-mono leading-none">{p.stockAvailable}</span>
+                      </div>
                     </div>
+                    
+                    {/* Bouton Edit Mobile-Friendly intégré dans la ligne de stock sur mobile */}
+                    <Link
+                      href={`/admin/products/${p._id}/edit`}
+                      className="md:hidden p-3 bg-white/50 rounded-xl text-gray-600 active:scale-90 transition-transform"
+                    >
+                      <Edit3 size={20} />
+                    </Link>
                   </div>
 
+                  {/* Bouton Edit Desktop */}
                   <Link
                     href={`/admin/products/${p._id}/edit`}
-                    className="p-4 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-2xl transition-all"
+                    className="hidden md:flex p-4 text-gray-300 hover:text-orange-500 hover:bg-orange-50 rounded-2xl transition-all active:scale-90"
                   >
-                    <Edit3 size={22} />
+                    <Edit3 size={24} />
                   </Link>
                 </div>
               );
             })
           ) : (
-            <div className="text-center py-32 bg-white rounded-[3rem] border-4 border-dashed border-gray-100">
-              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Package className="w-10 h-10 text-gray-200" />
-              </div>
-              <h3 className="text-xl font-black text-gray-900 uppercase italic">Aucun article trouvé</h3>
-              <p className="text-gray-400 font-medium mt-1">L'inventaire pour cette sélection est vide.</p>
-              {(searchTerm || category || channel) && (
-                <Link href="/admin/products" className="inline-block mt-4 text-xs font-black uppercase text-orange-500 hover:underline">
-                  Réinitialiser les filtres
-                </Link>
-              )}
+            <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-gray-200">
+              <Package className="w-16 h-16 text-gray-200 mx-auto mb-6" />
+              <h3 className="text-xl font-black text-gray-900 uppercase italic">Inventaire vide</h3>
+              <p className="text-gray-400 font-medium mt-1">Aucune référence ne correspond à votre recherche.</p>
+              <Link href="/admin/products" className="inline-block mt-6 px-6 py-2 bg-gray-100 rounded-full text-[10px] font-black uppercase text-gray-500 hover:bg-orange-500 hover:text-white transition-all">
+                Tout afficher
+              </Link>
             </div>
           )}
         </div>

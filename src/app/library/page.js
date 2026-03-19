@@ -43,21 +43,6 @@ export default async function LibraryPage() {
                 <h1 className="text-2xl md:text-4xl tracking-tighter italic leading-none text-gray-900 dark:text-white">
                   Notre <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400">Librairie</span>
                 </h1>
-                <p className="max-w-md text-[11px] font-medium text-gray-400 tracking-widest leading-relaxed">
-                  Plongez dans notre collection d'ouvrages sélectionnés pour vous inspirer, vous former et vous divertir.
-                </p>
-              </div>
-
-              <div className="flex flex-col items-end gap-3">
-                 <div className="bg-gray-900 dark:bg-white px-6 py-3 rounded-2xl shadow-2xl">
-                    <p className="text-[11px] text-white dark:text-gray-900 tracking-[0.2em] italic">
-                      {initial?.total || 0} Livres & Ressources
-                    </p>
-                 </div>
-                 <div className="flex items-center gap-2 text-gray-400 mr-2">
-                    <Fingerprint size={14} />
-                    <span className="text-[9px] font-mono tracking-[0.3em]">Protocol V.26 / SECURED</span>
-                 </div>
               </div>
             </div>
           </div>

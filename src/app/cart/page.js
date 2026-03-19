@@ -11,9 +11,8 @@ import {
   Plus, 
   Minus, 
   ArrowRight, 
+  ArrowLeft, 
   CreditCard, 
-  ShieldCheck, 
-  Truck,
   PackageOpen,
   AlertCircle 
 } from "lucide-react";
@@ -28,23 +27,20 @@ export default function CartPage() {
   const removeItem = useCartStore((state) => state.removeItem);
   const clear = useCartStore((state) => state.clear);
 
-  // Hydration fix
+  // Hydration fix pour éviter les erreurs de rendu serveur/client
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Calculs
+  // Calculs financiers
   const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const shipping = 0; 
   const total = subtotal + shipping;
 
-  // --- LOGIQUE DE LIMITE SÉCURISÉE ---
+  // Gestion de l'incrémentation avec vérification du stock
   const handleIncrement = (item) => {
-    // 1. On récupère la limite (avec une sécurité si l'info manque : 99)
     const stockLimit = item.stockAvailable !== undefined ? Number(item.stockAvailable) : 99;
-    
-    // 2. On n'incrémente que si on est EN DESSOUS de la limite
     if (item.quantity < stockLimit) {
       increment(item.productId);
     }
@@ -56,7 +52,7 @@ export default function CartPage() {
     <DashboardLayout>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300 pb-20">
         
-        {/* --- Header --- */}
+        {/* --- Header de la page --- */}
         <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-4 py-4 md:py-6 flex items-center justify-between">
             <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
@@ -81,7 +77,7 @@ export default function CartPage() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           
           {items.length === 0 ? (
-            // === EMPTY STATE ===
+            // === ÉTAT VIDE (EMPTY STATE) ===
             <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500">
               <div className="relative mb-6">
                 <div className="absolute inset-0 bg-orange-500/20 blur-xl rounded-full"></div>
@@ -89,27 +85,27 @@ export default function CartPage() {
                   <PackageOpen size={64} className="text-gray-300 dark:text-gray-600" />
                 </div>
               </div>
-              <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2">Votre panier est vide</h2>
-              <div className="flex gap-4 mt-8">
-                <Link
-                  href="/shop"
-                  className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black uppercase tracking-widest rounded-2xl overflow-hidden transition-all hover:scale-105 shadow-xl hover:shadow-2xl"
+              <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2 text-center">Votre panier est vide</h2>
+              
+              <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                {/* Bouton Retour (Historique) */}
+                <button
+                  onClick={() => router.back()}
+                  className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-100 dark:border-gray-700 font-black uppercase tracking-widest rounded-2xl transition-all hover:bg-gray-50 dark:hover:bg-gray-700 hover:scale-105 shadow-sm"
                 >
-                  <span className="relative z-10 flex items-center gap-2">
-                      Boutique <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform"/>
-                  </span>
-                </Link>
+                  <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform"/>
+                  Retour
+                </button>
               </div>
             </div>
 
           ) : (
-            // === GRID LAYOUT ===
+            // === PANIER REMPLI ===
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
               
-              {/* --- LISTE DES ARTICLES --- */}
+              {/* Liste des articles */}
               <div className="lg:col-span-2 space-y-4">
                 {items.map((item) => {
-                  // ✅ LOGIQUE VISUELLE DE LIMITE
                   const stockLimit = item.stockAvailable !== undefined ? Number(item.stockAvailable) : 99;
                   const isMaxReached = item.quantity >= stockLimit;
 
@@ -118,7 +114,7 @@ export default function CartPage() {
                     key={item.productId}
                     className="group flex flex-col sm:flex-row gap-4 bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-lg transition-all duration-300"
                   >
-                    {/* Image */}
+                    {/* Image Produit */}
                     <Link href={`/product/${item.productId}`} className="shrink-0 relative w-full sm:w-32 h-32 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden">
                        <img 
                          src={item.imageUrl} 
@@ -127,7 +123,7 @@ export default function CartPage() {
                        />
                     </Link>
 
-                    {/* Infos & Contrôles */}
+                    {/* Infos & Actions */}
                     <div className="flex-1 flex flex-col justify-between">
                       <div className="flex justify-between items-start gap-2">
                         <div>
@@ -137,27 +133,23 @@ export default function CartPage() {
                           <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                             Prix : {item.price.toLocaleString()} FCFA
                           </p>
-
-                          {/* ⚠️ ALERTE VISUELLE (S'affiche si max atteint) */}
                           {isMaxReached && (
                              <p className="flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded mt-2 w-fit animate-pulse">
-                               <AlertCircle size={12} /> Stock Max Atteint ({stockLimit})
+                               <AlertCircle size={12} /> Stock Max ({stockLimit})
                              </p>
                           )}
                         </div>
                         
-                        {removeItem && (
-                          <button 
-                            onClick={() => removeItem(item.productId)}
-                            className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => removeItem(item.productId)}
+                          className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
 
                       <div className="flex justify-between items-end mt-4 sm:mt-0">
-                        {/* Compteur Quantité */}
+                        {/* Contrôleur Quantité */}
                         <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700 w-fit">
                           <button 
                             onClick={() => decrement(item.productId)}
@@ -170,21 +162,20 @@ export default function CartPage() {
                             {item.quantity}
                           </span>
                           
-                          {/* ✅ BOUTON "+" : Désactivé si max atteint */}
                           <button 
                             onClick={() => handleIncrement(item)} 
                             disabled={isMaxReached} 
                             className={`w-8 h-8 flex items-center justify-center rounded-lg shadow-sm transition-colors ${
                               isMaxReached 
-                                ? "bg-gray-100 text-gray-300 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600" 
-                                : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100"
+                                ? "bg-gray-100 text-gray-300 cursor-not-allowed" 
+                                : "bg-white dark:bg-gray-700 text-gray-600 hover:bg-gray-100"
                             }`}
                           >
                             <Plus size={14} />
                           </button>
                         </div>
 
-                        {/* Total Ligne */}
+                        {/* Total Article */}
                         <div className="text-right">
                           <span className="block text-xs text-gray-400 font-bold uppercase tracking-wider">Total</span>
                           <span className="text-xl font-black text-gray-900 dark:text-white">
@@ -197,7 +188,7 @@ export default function CartPage() {
                 )})}
               </div>
 
-              {/* --- RÉSUMÉ --- */}
+              {/* Panneau Résumé */}
               <div className="lg:col-span-1 lg:sticky lg:top-24">
                 <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl">
                   <h2 className="text-xl font-black text-gray-900 dark:text-white mb-6">Récapitulatif</h2>
@@ -220,7 +211,7 @@ export default function CartPage() {
                     onClick={() => router.push("/checkout")}
                     className="w-full py-4 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black uppercase tracking-widest shadow-lg hover:bg-black hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    Payement <CreditCard size={20} />
+                    Paiement <CreditCard size={20} />
                   </button>
                 </div>
               </div>

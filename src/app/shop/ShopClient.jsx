@@ -214,37 +214,68 @@ export default function ShopClient({ initialData, search, category, page }) {
         )}
 
         {totalPages > 1 && (
-          <div className="mt-12 md:mt-20 flex flex-wrap justify-center items-center gap-2 md:gap-3">
-            {generatePagination(page, totalPages).map((item, index) => {
-              if (item === "...") {
-                return (
-                  <span 
-                    key={`ellipsis-${index}`} 
-                    className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center text-gray-400 font-black tracking-widest"
-                  >
-                    ...
-                  </span>
-                );
-              }
+  <div className="mt-12 md:mt-20 flex flex-wrap justify-center items-center gap-2 md:gap-3">
+    
+    {/* BOUTON PRÉCÉDENT */}
+    <Link
+      href={page > 1 ? `/shop?page=${page - 1}${search ? `&search=${search}` : ""}${category ? `&category=${category}` : ""}` : "#"}
+      className={`w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl transition-all border ${
+        page > 1 
+          ? "bg-white text-gray-600 hover:text-orange-500 border-gray-100 hover:border-orange-500" 
+          : "bg-gray-50 text-gray-300 border-transparent cursor-not-allowed"
+      }`}
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+      </svg>
+    </Link>
 
-              return (
-                <Link
-                  key={item}
-                  href={`/shop?page=${item}${search ? `&search=${search}` : ""}${category ? `&category=${category}` : ""}`}
-                  className={`
-                    w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl font-black text-[10px] md:text-xs transition-all
-                    ${page === item 
-                      ? "bg-orange-500 text-white shadow-xl shadow-orange-500/40 scale-110" 
-                      : "bg-white dark:bg-gray-900 text-gray-400 hover:text-orange-500 border border-gray-100 dark:border-gray-800"
-                    }
-                  `}
-                >
-                  {String(item).padStart(2, '0')}
-                </Link>
-              );
-            })}
-          </div>
-        )}
+    {/* LISTE DES CHIFFRES (Ton code actuel) */}
+    {generatePagination(page, totalPages).map((item, index) => {
+      if (item === "...") {
+        return (
+          <span 
+            key={`ellipsis-${index}`} 
+            className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center text-gray-400 font-black tracking-widest"
+          >
+            ...
+          </span>
+        );
+      }
+
+      return (
+        <Link
+          key={item}
+          href={`/shop?page=${item}${search ? `&search=${search}` : ""}${category ? `&category=${category}` : ""}`}
+          className={`
+            w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl font-black text-[10px] md:text-xs transition-all
+            ${page === item 
+              ? "bg-orange-500 text-white shadow-xl shadow-orange-500/40 scale-110" 
+              : "bg-white dark:bg-gray-900 text-gray-400 hover:text-orange-500 border border-gray-100 dark:border-gray-800"
+            }
+          `}
+        >
+          {String(item).padStart(2, '0')}
+        </Link>
+      );
+    })}
+
+    {/* BOUTON SUIVANT */}
+    <Link
+      href={page < totalPages ? `/shop?page=${page + 1}${search ? `&search=${search}` : ""}${category ? `&category=${category}` : ""}` : "#"}
+      className={`w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl transition-all border ${
+        page < totalPages 
+          ? "bg-white text-gray-600 hover:text-orange-500 border-gray-100 hover:border-orange-500" 
+          : "bg-gray-50 text-gray-300 border-transparent cursor-not-allowed"
+      }`}
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+      </svg>
+    </Link>
+
+  </div>
+)}
       </div>
     </div>
   );

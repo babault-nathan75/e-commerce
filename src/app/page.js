@@ -17,7 +17,7 @@ export default function HomePage() {
         <div className="text-center space-y-8">
           
           {/* Logo remplacé ici */}
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-2 -mt-14 ">
             <div className="relative group transition-transform duration-500 hover:scale-110">
               <Image 
                 src="/favicon.ico" 

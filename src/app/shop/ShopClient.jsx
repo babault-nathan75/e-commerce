@@ -28,11 +28,8 @@ export default function ShopClient({ initialData, search, category, page }) {
   const pathname = usePathname();
 
   // --- LOGIQUE DE TRI ---
-
-  // 1. Tri des catégories par ordre alphabétique
   const sortedCategories = [...initialData.categories].sort((a, b) => a.localeCompare(b));
 
-  // 2. Tri des produits par stock (du plus faible au plus élevé)
   const sortedProducts = [...initialData.products].sort((a, b) => {
     const stockA = a.stockAvailable ?? a.stock ?? 0;
     const stockB = b.stockAvailable ?? b.stock ?? 0;
@@ -49,6 +46,15 @@ export default function ShopClient({ initialData, search, category, page }) {
     if (searchQuery) params.set("search", searchQuery);
     if (category) params.set("category", category);
     router.push(`${pathname}?${params.toString()}`);
+  };
+
+  // 🔴 NOUVEAU : Fonction sécurisée pour générer les URLs de pagination avec les accents
+  const createPageUrl = (targetPage) => {
+    const params = new URLSearchParams();
+    params.set("page", targetPage);
+    if (search) params.set("search", search);
+    if (category) params.set("category", category); // URLSearchParams encode automatiquement "piété" !
+    return `${pathname}?${params.toString()}`;
   };
 
   return (
@@ -70,7 +76,6 @@ export default function ShopClient({ initialData, search, category, page }) {
                 className="block w-full pl-12 pr-4 py-3 md:pl-14 md:py-4 bg-gray-50 dark:bg-gray-900 border-transparent focus:border-orange-500 focus:bg-white dark:focus:bg-black focus:ring-4 focus:ring-orange-500/5 rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest text-gray-900 dark:text-gray-100 placeholder-gray-400 transition-all shadow-inner"
               />
             </form>
-
           </div>
         </div>
 
@@ -187,68 +192,68 @@ export default function ShopClient({ initialData, search, category, page }) {
         )}
 
         {totalPages > 1 && (
-  <div className="mt-12 md:mt-20 flex flex-wrap justify-center items-center gap-2 md:gap-3">
-    
-    {/* BOUTON PRÉCÉDENT */}
-    <Link
-      href={page > 1 ? `/shop?page=${page - 1}${search ? `&search=${search}` : ""}${category ? `&category=${category}` : ""}` : "#"}
-      className={`w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl transition-all border ${
-        page > 1 
-          ? "bg-white text-gray-600 hover:text-orange-500 border-gray-100 hover:border-orange-500" 
-          : "bg-gray-50 text-gray-300 border-transparent cursor-not-allowed"
-      }`}
-    >
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
-      </svg>
-    </Link>
+          <div className="mt-12 md:mt-20 flex flex-wrap justify-center items-center gap-2 md:gap-3">
+            
+            {/* BOUTON PRÉCÉDENT */}
+            <Link
+              href={page > 1 ? createPageUrl(page - 1) : "#"}
+              className={`w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl transition-all border ${
+                page > 1 
+                  ? "bg-white text-gray-600 hover:text-orange-500 border-gray-100 hover:border-orange-500" 
+                  : "bg-gray-50 text-gray-300 border-transparent cursor-not-allowed"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
 
-    {/* LISTE DES CHIFFRES (Ton code actuel) */}
-    {generatePagination(page, totalPages).map((item, index) => {
-      if (item === "...") {
-        return (
-          <span 
-            key={`ellipsis-${index}`} 
-            className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center text-gray-400 font-black tracking-widest"
-          >
-            ...
-          </span>
-        );
-      }
+            {/* LISTE DES CHIFFRES */}
+            {generatePagination(page, totalPages).map((item, index) => {
+              if (item === "...") {
+                return (
+                  <span 
+                    key={`ellipsis-${index}`} 
+                    className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center text-gray-400 font-black tracking-widest"
+                  >
+                    ...
+                  </span>
+                );
+              }
 
-      return (
-        <Link
-          key={item}
-          href={`/shop?page=${item}${search ? `&search=${search}` : ""}${category ? `&category=${category}` : ""}`}
-          className={`
-            w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl font-black text-[10px] md:text-xs transition-all
-            ${page === item 
-              ? "bg-orange-500 text-white shadow-xl shadow-orange-500/40 scale-110" 
-              : "bg-white dark:bg-gray-900 text-gray-400 hover:text-orange-500 border border-gray-100 dark:border-gray-800"
-            }
-          `}
-        >
-          {String(item).padStart(2, '0')}
-        </Link>
-      );
-    })}
+              return (
+                <Link
+                  key={item}
+                  href={createPageUrl(item)}
+                  className={`
+                    w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl font-black text-[10px] md:text-xs transition-all
+                    ${page === item 
+                      ? "bg-orange-500 text-white shadow-xl shadow-orange-500/40 scale-110" 
+                      : "bg-white dark:bg-gray-900 text-gray-400 hover:text-orange-500 border border-gray-100 dark:border-gray-800"
+                    }
+                  `}
+                >
+                  {String(item).padStart(2, '0')}
+                </Link>
+              );
+            })}
 
-    {/* BOUTON SUIVANT */}
-    <Link
-      href={page < totalPages ? `/shop?page=${page + 1}${search ? `&search=${search}` : ""}${category ? `&category=${category}` : ""}` : "#"}
-      className={`w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl transition-all border ${
-        page < totalPages 
-          ? "bg-white text-gray-600 hover:text-orange-500 border-gray-100 hover:border-orange-500" 
-          : "bg-gray-50 text-gray-300 border-transparent cursor-not-allowed"
-      }`}
-    >
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-      </svg>
-    </Link>
+            {/* BOUTON SUIVANT */}
+            <Link
+              href={page < totalPages ? createPageUrl(page + 1) : "#"}
+              className={`w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-2xl transition-all border ${
+                page < totalPages 
+                  ? "bg-white text-gray-600 hover:text-orange-500 border-gray-100 hover:border-orange-500" 
+                  : "bg-gray-50 text-gray-300 border-transparent cursor-not-allowed"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
 
-  </div>
-)}
+          </div>
+        )}
       </div>
     </div>
   );

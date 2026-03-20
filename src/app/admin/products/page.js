@@ -15,22 +15,43 @@ import {
 } from "lucide-react";
 import { redirect } from "next/navigation";
 
+// 🔴 TRÈS IMPORTANT : Force Next.js à recalculer la page à chaque fois (Désactive le cache)
+export const dynamic = 'force-dynamic';
+
 export default async function AdminProductsPage({ searchParams }) {
   const params = await searchParams;
   const channel = params.channel || "";
-  const category = params.category ? decodeURIComponent(params.category) : "";
+  
+  // On laisse Next.js décoder l'URL naturellement, mais on nettoie les espaces avant/après
+  const category = params.category ? params.category.trim() : "";
   const searchTerm = params.q || "";
 
   await connectDB();
 
   const query = {};
   if (channel) query.channel = channel;
-  if (category) query.category = { $regex: new RegExp(`^${category}$`, "i") };
-  if (searchTerm) query.name = { $regex: searchTerm, $options: "i" };
+  
+  if (category) {
+    // 🔴 LA CORRECTION EST ICI : On enlève le ^ et le $ pour une recherche plus souple
+    // Cela permet de trouver "Article de piété" même si dans la DB c'est écrit "Article de piété " (avec un espace)
+    query.category = { $regex: category, $options: "i" };
+  }
+  
+  if (searchTerm) {
+    query.name = { $regex: searchTerm, $options: "i" };
+  }
 
+  // 🐛 DÉBOGAGE : Affiche la requête exacte dans ton terminal (serveur)
+  console.log("--- RECHERCHE MONGODB ---");
+  console.log("Catégorie recherchée :", category);
+  console.log("Requête complète :", query);
+  
   const products = await Product.find(query)
     .sort({ stockAvailable: 1, createdAt: -1 })
     .lean();
+
+  console.log("Nombre d'articles trouvés :", products.length);
+  console.log("-------------------------");
 
   async function handleSearch(formData) {
     "use server";
@@ -182,4 +203,4 @@ export default async function AdminProductsPage({ searchParams }) {
       </div>
     </div>
   );
-}
+} 

@@ -303,7 +303,8 @@ function KpiCard({ title, metric, delta, deltaType, icon: Icon, color }) {
 function DropdownMenu({ items, channel, color = "orange", close, onAdd, onEdit, onDelete }) {
   const accentColor = color === "orange" ? "text-orange-500" : "text-blue-600";
   return (
-    <Card className="absolute top-full mt-3 left-0 w-64 p-0 rounded-[2rem] shadow-2xl border-none overflow-hidden animate-in fade-in slide-in-from-top-2 bg-white ring-1 ring-slate-200">
+    // 🔴 Ajout de 'w-[90vw] md:w-64' et '-translate-x-1/2 md:translate-x-0' pour centrer sur mobile si ça déborde
+    <Card className="absolute top-full mt-3 left-1/2 -translate-x-1/2 md:left-0 md:translate-x-0 w-[90vw] md:w-64 p-0 rounded-[2rem] shadow-2xl border-none overflow-hidden animate-in fade-in slide-in-from-top-2 bg-white ring-1 ring-slate-200 z-[150]">
       <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
         <Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Modules {channel}</Text>
         <button onClick={onAdd} className={`${accentColor} hover:scale-110 transition-transform`}><PlusCircle size={20} /></button>
@@ -311,11 +312,14 @@ function DropdownMenu({ items, channel, color = "orange", close, onAdd, onEdit, 
       <div className="max-h-60 overflow-y-auto scrollbar-hide">
         {items.map(cat => (
           <div key={cat._id} className="flex items-center justify-between px-5 py-3 group border-b border-slate-50 last:border-none hover:bg-slate-50 transition-colors">
-            <Link href={`/admin/products?channel=${channel}&category=${cat.name}`} className="text-xs font-bold text-slate-700 flex-1 uppercase tracking-tight" onClick={close}>{cat.name}</Link>
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-               <button onClick={() => onEdit(cat)} className="p-1.5 bg-white rounded-lg text-blue-500 shadow-sm hover:text-blue-600"><Edit3 size={14} /></button>
-               <button onClick={() => onDelete(cat._id)} className="p-1.5 bg-white rounded-lg text-red-500 shadow-sm hover:text-red-600"><Trash2 size={14} /></button>
+            <Link href={`/admin/products?channel=${channel}&category=${cat.name}`} className="text-xs font-bold text-slate-700 flex-1 uppercase tracking-tight truncate mr-2" onClick={close}>{cat.name}</Link>
+            
+            {/* 🔴 LA CORRECTION EST ICI : opacity-100 par défaut (mobile), md:opacity-0 pour le desktop */}
+            <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+               <button onClick={() => onEdit(cat)} className="p-1.5 bg-white rounded-lg text-blue-500 shadow-sm hover:text-blue-600 active:scale-90"><Edit3 size={14} /></button>
+               <button onClick={() => onDelete(cat._id)} className="p-1.5 bg-white rounded-lg text-red-500 shadow-sm hover:text-red-600 active:scale-90"><Trash2 size={14} /></button>
             </div>
+
           </div>
         ))}
       </div>

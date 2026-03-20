@@ -63,6 +63,9 @@ export default async function AdminProductsPage({ searchParams }) {
     redirect(`/admin/products?${urlParams.toString()}`);
   }
 
+  // 🔴 LOGIQUE POUR LE TITRE PRINCIPAL
+  const pageTitle = channel === "library" ? "LIBRAIRIE" : "BOUTIQUE";
+
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20 selection:bg-orange-100">
       <div className="max-w-7xl mx-auto p-4 md:p-10">
@@ -82,7 +85,12 @@ export default async function AdminProductsPage({ searchParams }) {
               
               <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tighter uppercase italic flex items-baseline gap-3">
                 {channel === "library" ? <BookOpen className="text-blue-600 shrink-0" size={32} /> : <Store className="text-emerald-500 shrink-0" size={32} />}
-                <span className="truncate max-w-[250px] md:max-w-none">{category || "Global"}</span>
+                
+                {/* Affichage dynamique: Librairie ou Boutique + Catégorie si elle existe */}
+                <span className="truncate max-w-[250px] md:max-w-none">
+                  {pageTitle} {category && <span className="text-gray-400 font-medium">/ {category}</span>}
+                </span>
+                
                 <span className="text-xl font-bold text-orange-500 not-italic">({products.length})</span>
               </h1>
             </div>
@@ -103,7 +111,7 @@ export default async function AdminProductsPage({ searchParams }) {
               name="q"
               type="text"
               defaultValue={searchTerm}
-              placeholder="Rechercher par nom ou référence..."
+              placeholder={`Rechercher par nom ou référence dans ${pageTitle}...`}
               className="w-full pl-14 pr-4 py-5 bg-white border border-gray-200 rounded-3xl text-sm font-bold uppercase tracking-widest focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 shadow-sm transition-all placeholder:text-gray-300"
             />
           </form>
@@ -141,7 +149,8 @@ export default async function AdminProductsPage({ searchParams }) {
                       <span className={`text-[8px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider ${
                         p.channel === "library" ? "bg-blue-600 text-white" : "bg-emerald-600 text-white"
                       }`}>
-                        {p.channel === "library" ? "Livre" : "Boutique"}
+                        {/* 🔴 Ajustement du badge sur chaque ligne de produit */}
+                        {p.channel === "library" ? "LIBRAIRIE" : "BOUTIQUE"}
                       </span>
                       <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-lg">
                         {p.category || "Sans catégorie"}
@@ -203,4 +212,4 @@ export default async function AdminProductsPage({ searchParams }) {
       </div>
     </div>
   );
-} 
+}

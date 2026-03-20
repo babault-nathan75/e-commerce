@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { fetchLibraryProducts } from "./actions";
 import { Search, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 
-// Modification du CHIP_BASE pour être plus fin sur mobile
 const CHIP_BASE = "px-4 py-2.5 md:px-6 md:py-3 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 border flex-shrink-0";
 
 export default function LibraryClient({
@@ -30,7 +28,6 @@ export default function LibraryClient({
     });
   };
 
-  // --- LOGIQUE PAGINATION ---
   const renderPagination = () => {
     const pages = [];
     if (totalPages <= 4) {
@@ -47,16 +44,13 @@ export default function LibraryClient({
   };
 
   return (
-    // 🔴 AJOUT de overflow-x-hidden stricte pour empêcher tout débordement
     <div className="space-y-6 md:space-y-12 px-3 sm:px-4 md:px-8 max-w-7xl mx-auto w-full overflow-x-hidden">
       
       {/* --- MOTEUR DE RECHERCHE & FILTRES --- */}
       <div className="sticky top-2 md:top-6 z-30 space-y-4 w-full">
-        {/* 🔴 Ajustement des paddings (p-3 au lieu de p-4) pour les petits mobiles */}
         <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl p-3 sm:p-4 md:p-5 rounded-[1.5rem] md:rounded-[2.5rem] border border-white dark:border-gray-800 shadow-2xl w-full">
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full">
             
-            {/* 🔴 min-w-0 est crucial ici pour que le flex ne dépasse jamais */}
             <div className="relative flex-1 group min-w-0">
               <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
               <input 
@@ -81,7 +75,6 @@ export default function LibraryClient({
             </select>
           </div>
 
-          {/* Défilement horizontal fluide sur mobile sans scrollbar */}
           <div 
             className="flex items-center gap-2 overflow-x-auto scrollbar-hide mt-3 md:mt-5 pt-3 md:pt-5 border-t border-gray-100 dark:border-gray-800"
             style={{ WebkitOverflowScrolling: 'touch' }}
@@ -108,8 +101,11 @@ export default function LibraryClient({
       {/* --- GRID DE LIVRES (CADRES VERTICAUX) --- */}
       <div className={`grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 transition-opacity duration-300 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
         {products?.map((book) => (
-          <div key={book._id} className="group flex flex-col bg-white dark:bg-gray-900 rounded-[1.25rem] md:rounded-[2rem] border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-3xl hover:shadow-emerald-500/10 transition-all duration-500">
-            
+          <Link 
+            key={book._id} 
+            href={`/product/${book._id}`}
+            className="group flex flex-col bg-white dark:bg-gray-900 rounded-[1.25rem] md:rounded-[2rem] border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-3xl hover:shadow-emerald-500/10 transition-all duration-500"
+          >
             <div className="relative aspect-[3/4] bg-gray-50 dark:bg-black overflow-hidden">
               <img 
                 src={book.imageUrl} 
@@ -133,16 +129,16 @@ export default function LibraryClient({
                 <div className="text-sm md:text-lg font-black text-gray-900 dark:text-white italic tracking-tighter truncate">
                   {book.price.toLocaleString()} <span className="text-[7px] md:text-[9px] font-mono">CFA</span>
                 </div>
-                <Link href={`/product/${book._id}`} className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-emerald-500 dark:hover:bg-emerald-500 hover:text-white transition-all ml-1">
+                <div className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 group-hover:bg-emerald-500 dark:group-hover:bg-emerald-500 group-hover:text-white transition-all ml-1">
                   <ArrowRight size={14} className="md:w-4 md:h-4" />
-                </Link>
+                </div>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
-      {/* --- PAGINATION AVEC ELLIPSES --- */}
+      {/* --- PAGINATION --- */}
       {totalPages > 1 && (
         <div className="flex flex-wrap justify-center items-center gap-1.5 sm:gap-2 md:gap-3 pt-6 md:pt-12 w-full">
           <button 

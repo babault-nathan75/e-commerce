@@ -55,8 +55,8 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <SocialLink href="#" icon={Facebook} label="FB" />
               <SocialLink href="#" icon={Instagram} label="IG" />
-              <SocialLink href="#" icon={Youtube} label="YT" />
-              <SocialLink href="#" icon={Music} label="TT" />
+              <SocialLink href="http://www.youtube.com/@hebronivoire9411" icon={Youtube} label="YT" />
+              <SocialLink href="https://www.tiktok.com/@hebron.ivoire?_r=1&_t=ZS-94rGrjE3W4e" icon={Music} label="TT" />
 
               <div className="h-10 w-px bg-white/5 mx-1" />
               <div className="flex flex-col">

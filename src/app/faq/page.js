@@ -140,6 +140,12 @@ export default function FAQPage() {
               <MessageCircle size={20} />
               Nous contacter sur WhatsApp
             </a>
+            <p className="mt-6 text-sm opacity-80">
+              Numero complementaire : <a 
+              href="https://wa.me/2250503117454"
+              className="inline-flex items-center gap-2 bg-white text-orange-600 px-8 py-4 rounded-full font-black uppercase tracking-widest hover:scale-105 transition-transform"
+            >05 03 11 74 54</a>
+            </p>
           </div>
         </div>
       </div>

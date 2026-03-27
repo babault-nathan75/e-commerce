@@ -108,7 +108,14 @@ export default function Footer() {
                   href="tel:+2250704474002"
                   className="text-[11px] font-black text-gray-300 uppercase tracking-tighter hover:text-orange-500 transition-colors"
                 >
-                  +225 07 04 47 40 02
+                07 04 47 40 02
+                </a>
+                /
+                <a
+                  href="tel:+2250503117454"
+                  className="text-[11px] font-black text-gray-300 uppercase tracking-tighter hover:text-orange-500 transition-colors"
+                >
+                05 03 11 74 54
                 </a>
               </li>
 

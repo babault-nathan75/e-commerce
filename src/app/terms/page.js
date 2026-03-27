@@ -128,6 +128,7 @@ export default function TermsPage() {
               <MessageCircle size={20} className="text-orange-500 group-hover:text-white" />
               <span className="font-bold text-sm">WhatsApp Support</span>
             </a>
+            
             <a href="mailto:hebronivoireshops@gmail.com" className="flex items-center justify-center gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl hover:bg-orange-500 hover:text-white transition-all group">
               <Mail size={20} className="text-orange-500 group-hover:text-white" />
               <span className="font-bold text-sm">hebronivoireshops@gmail.com</span>

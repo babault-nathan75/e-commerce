@@ -134,7 +134,7 @@ export default function FAQPage() {
               Notre équipe support est disponible 7j/7 pour répondre à toutes vos préoccupations sur WhatsApp.
             </p>
             <a 
-              href="https://wa.me/2250503117454"
+              href="https://wa.me/2250704474002"
               className="inline-flex items-center gap-2 bg-white text-orange-600 px-8 py-4 rounded-full font-black uppercase tracking-widest hover:scale-105 transition-transform"
             >
               <MessageCircle size={20} />

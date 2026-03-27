@@ -124,7 +124,7 @@ export default function TermsPage() {
             Besoin d'assistance ?
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a href="https://wa.me/2250503117454" className="flex items-center justify-center gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl hover:bg-orange-500 hover:text-white transition-all group">
+            <a href="https://wa.me/2250704474002" className="flex items-center justify-center gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl hover:bg-orange-500 hover:text-white transition-all group">
               <MessageCircle size={20} className="text-orange-500 group-hover:text-white" />
               <span className="font-bold text-sm">WhatsApp Support</span>
             </a>

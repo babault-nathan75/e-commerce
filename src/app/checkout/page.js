@@ -184,7 +184,8 @@ export default function CheckoutPage() {
             <p className="font-bold mb-2">Instructions pour le Retrait :</p>
             <p>1. Effectuez le paiement du total ({totalPrice.toLocaleString()} FCFA) via :</p>
             <ul className="list-disc list-inside mt-1 ml-2 font-mono font-bold">
-                <li>MTN Money ou Wave : 05 03 11 74 54</li>
+                <li>Orange Money ou Wave : 07 04 47 40 02</li>
+                <li>Orange Money ou Wave : 07 12 52 13 24</li>
             </ul>
             <p className="mt-2">2. Faites une capture d'écran du reçu.</p>
             <p>3. Uploadez la capture ci-dessous pour valider la commande.</p>

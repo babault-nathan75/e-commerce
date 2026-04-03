@@ -14,7 +14,7 @@ import {
   Eye,
   Settings2,
   Sparkles,
-  ArrowLeft // ✅ Ajout de l'icône de retour
+  ArrowLeft 
 } from "lucide-react";
 import Link from "next/link";
 
@@ -25,10 +25,13 @@ export default function AdminBanners() {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   
+  // 🔴 NOUVEAUX STATES POUR L'IMAGE LOCALE
+  const [imageFile, setImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    imageUrl: "",
     link: "/shop",
     isActive: true
   });
@@ -49,27 +52,11 @@ export default function AdminBanners() {
     }
   };
 
-  const handleFileUpload = async (file) => {
+  // 🔴 MODIFICATION : On stocke juste le fichier localement pour la preview
+  const handleFileUpload = (file) => {
     if (!file) return;
-    setUploading(true);
-    
-    const data = new FormData();
-    data.append("file", file);
-
-    try {
-      const res = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: data,
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setFormData((prev) => ({ ...prev, imageUrl: json.url }));
-      }
-    } catch (err) {
-      console.error("Upload failed");
-    } finally {
-      setUploading(false);
-    }
+    setImageFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
   const handleDrag = (e) => {
@@ -88,23 +75,39 @@ export default function AdminBanners() {
     }
   };
 
+  // 🔴 MODIFICATION : Envoi de tout (image + texte) à la route Banners
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.imageUrl) return;
+    if (!imageFile) return;
+
+    setUploading(true);
+
+    const submitData = new FormData();
+    submitData.append("image", imageFile);
+    submitData.append("title", formData.title);
+    submitData.append("description", formData.description);
+    submitData.append("link", formData.link);
 
     try {
       const res = await fetch("/api/admin/banners", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        // ⚠️ SURTOUT PAS DE HEADER CONTENT-TYPE ICI !
+        body: submitData,
       });
+
       if (res.ok) {
         setShowForm(false);
-        setFormData({ title: "", description: "", imageUrl: "", link: "/shop", isActive: true });
+        setFormData({ title: "", description: "", link: "/shop", isActive: true });
+        setImageFile(null);
+        setPreviewUrl("");
         fetchBanners();
+      } else {
+        console.error("Échec de la publication");
       }
     } catch (error) {
-      console.error("Submit failed");
+      console.error("Submit failed", error);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -179,13 +182,17 @@ export default function AdminBanners() {
               {/* Zone Upload High-End */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Fichier Visuel (1920x600 recommandé)</label>
-                {formData.imageUrl ? (
+                {/* 🔴 MODIFICATION : On vérifie previewUrl au lieu de formData.imageUrl */}
+                {previewUrl ? (
                   <div className="relative aspect-video w-full rounded-3xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-2xl group">
-                    <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <button 
                         type="button"
-                        onClick={() => setFormData({ ...formData, imageUrl: "" })}
+                        onClick={() => {
+                          setImageFile(null);
+                          setPreviewUrl("");
+                        }}
                         className="bg-white text-red-600 p-3 rounded-2xl shadow-xl hover:scale-110 transition-transform"
                         >
                         <Trash2 className="w-6 h-6" />
@@ -202,12 +209,6 @@ export default function AdminBanners() {
                       dragActive ? "border-green-500 bg-green-500/5" : "border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 hover:border-green-400"
                     }`}
                   >
-                    {uploading ? (
-                      <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="w-12 h-12 animate-spin text-green-600" />
-                        <span className="text-xs font-black text-green-600 uppercase tracking-widest">Traitement...</span>
-                      </div>
-                    ) : (
                       <>
                         <div className="p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-xl mb-4 text-gray-400 group-hover:text-green-500 transition-colors">
                             <UploadCloud className="w-10 h-10" />
@@ -221,7 +222,6 @@ export default function AdminBanners() {
                           accept="image/*"
                         />
                       </>
-                    )}
                   </div>
                 )}
               </div>
@@ -266,10 +266,16 @@ export default function AdminBanners() {
 
                 <button 
                     type="submit" 
-                    disabled={uploading || !formData.imageUrl} 
-                    className="w-full py-5 rounded-2xl bg-green-600 text-white font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-green-600/20 hover:bg-green-700 hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50"
+                    // 🔴 MODIFICATION : On vérifie que imageFile existe
+                    disabled={uploading || !imageFile} 
+                    className="w-full py-5 rounded-2xl bg-green-600 text-white font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-green-600/20 hover:bg-green-700 hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 flex justify-center items-center gap-2"
                 >
-                  {uploading ? "Patientez..." : "Publier la bannière"}
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Traitement & Publication...
+                    </>
+                  ) : "Publier la bannière"}
                 </button>
               </div>
             </form>

@@ -1,48 +1,76 @@
 "use client";
 
-import { use, useState } from "react";
-import { MENUS } from "@/lib/menus"; 
-import { ShoppingBag, Plus, X, ArrowLeft, UploadCloud } from "lucide-react";
+import { use, useState, useEffect } from "react";
+import { ShoppingBag, Plus, X, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
-// 1. IMPORT DE TON ACTION SERVEUR
-import { createFoodOrder } from "@/lib/actions/foodOrder";
+import { getPublicMenu } from "@/lib/actions/menuItem"; // 👈 On importe la nouvelle action
 
 export default function CommandePage({ params }) {
   const resolvedParams = use(params);
   const lieu = resolvedParams.lieu;
   
-  const menuItems = MENUS[lieu] || [];
   const themeColor = lieu === "hebron" ? "orange" : "purple";
   const restaurantName = lieu === "hebron" ? "Hebron Ivoire" : "Espace Teresa";
 
-  // Gestion du Panier Local & Étapes
+  // ==========================================
+  // ÉTATS DE LA PAGE
+  // ==========================================
+  const [menuItems, setMenuItems] = useState([]);
+  const [isLoadingMenu, setIsLoadingMenu] = useState(true);
+
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [cartStep, setCartStep] = useState("cart"); // "cart" | "checkout" | "success"
+  const [cartStep, setCartStep] = useState("cart"); 
   const [orderCode, setOrderCode] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ==========================================
+  // CHARGEMENT DES PLATS DEPUIS MONGODB
+  // ==========================================
+  useEffect(() => {
+    const fetchMenu = async () => {
+        setIsLoadingMenu(true);
+        const data = await getPublicMenu(lieu);
+        setMenuItems(data);
+        setIsLoadingMenu(false);
+    };
+    fetchMenu();
+  }, [lieu]);
 
   // Fonction d'ajout au panier
   const addToCart = (item) => {
     setCart(prev => {
-        const existing = prev.find(i => i.name === item.name);
+        const existing = prev.find(i => i._id === item._id); // Utilisation de l'ID au lieu du nom
         if (existing) {
-            return prev.map(i => i.name === item.name ? { ...i, qty: i.qty + 1 } : i);
+            return prev.map(i => i._id === item._id ? { ...i, qty: i.qty + 1 } : i);
         }
         return [...prev, { ...item, qty: 1 }];
     });
     setIsCartOpen(true);
-    setCartStep("cart"); // Si on ajoute un article, on s'assure de revenir sur la vue panier
+    setCartStep("cart");
   };
 
-  const removeFromCart = (itemName) => {
-    setCart(prev => prev.filter(i => i.name !== itemName));
+  const removeFromCart = (itemId) => {
+    setCart(prev => prev.filter(i => i._id !== itemId));
   };
 
   // Calculs
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
   const totalItemsCount = cart.reduce((acc, item) => acc + item.qty, 0);
-  const categories = [...new Set(menuItems.map(i => i.category))];
+  
+  // Regroupement par catégorie (par défaut "Au Menu" si le champ catégorie n'existe pas encore)
+  const categories = [...new Set(menuItems.map(i => i.category || "Au Menu"))];
+
+  // ==========================================
+  // AFFICHAGE DU CHARGEMENT
+  // ==========================================
+  if (isLoadingMenu) {
+      return (
+          <div className="flex flex-col h-screen items-center justify-center bg-slate-50 text-slate-400">
+              <Loader2 size={48} className={`animate-spin text-${themeColor}-500 mb-4`} />
+              <p className="font-bold uppercase tracking-widest text-sm">Chargement du menu...</p>
+          </div>
+      );
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
@@ -104,27 +132,43 @@ export default function CommandePage({ params }) {
             </div>
 
             {/* Plats */}
-            {categories.map(cat => (
-                <div key={cat} id={cat} className="mb-12 scroll-mt-24">
-                    <h3 className="text-xl font-black text-slate-800 mb-6 uppercase tracking-wider border-b pb-2">{cat}</h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                        {menuItems.filter(i => i.category === cat).map((item, idx) => (
-                            <div key={idx} className="bg-white p-5 rounded-3xl border border-slate-100 hover:shadow-xl hover:shadow-slate-200/50 hover:border-slate-200 transition-all flex justify-between items-center group">
-                                <div>
-                                    <h4 className="font-bold text-slate-900 text-lg">{item.name}</h4>
-                                    <p className={`text-${themeColor}-600 font-bold mt-1`}>{item.price.toLocaleString()} FCFA</p>
-                                </div>
-                                <button 
-                                    onClick={() => addToCart(item)}
-                                    className={`w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-${themeColor}-600 group-hover:text-white transition-colors shadow-sm`}
-                                >
-                                    <Plus size={24} />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
+            {menuItems.length === 0 ? (
+                <div className="text-center p-10 bg-white rounded-3xl border border-slate-100">
+                    <p className="text-slate-500 font-bold">Aucun plat n'est actuellement disponible.</p>
                 </div>
-            ))}
+            ) : (
+                categories.map(cat => (
+                    <div key={cat} id={cat} className="mb-12 scroll-mt-24">
+                        <h3 className="text-xl font-black text-slate-800 mb-6 uppercase tracking-wider border-b pb-2">{cat}</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            {menuItems.filter(i => (i.category || "Au Menu") === cat).map((item) => (
+                                <div key={item._id} className="bg-white p-5 rounded-3xl border border-slate-100 hover:shadow-xl hover:shadow-slate-200/50 hover:border-slate-200 transition-all flex gap-4 items-center group">
+                                    
+                                    {/* Image du plat (si elle existe) */}
+                                    {item.imageUrl && (
+                                        <div className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden bg-slate-100">
+                                            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-slate-900 text-lg leading-tight">{item.name}</h4>
+                                        <p className="text-xs text-slate-400 mt-1 line-clamp-1">{item.description}</p>
+                                        <p className={`text-${themeColor}-600 font-black mt-2`}>{item.price.toLocaleString()} FCFA</p>
+                                    </div>
+
+                                    <button 
+                                        onClick={() => addToCart(item)}
+                                        className={`shrink-0 w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-${themeColor}-600 group-hover:text-white transition-colors shadow-sm`}
+                                    >
+                                        <Plus size={24} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))
+            )}
         </div>
       </main>
 
@@ -169,7 +213,7 @@ export default function CommandePage({ params }) {
                                           </div>
                                           <div className="flex items-center gap-4">
                                               <span className="font-black text-sm text-slate-900">{(item.price * item.qty).toLocaleString()}</span>
-                                              <button onClick={() => removeFromCart(item.name)} className="text-slate-300 hover:text-red-500 transition-colors p-1"><X size={18}/></button>
+                                              <button onClick={() => removeFromCart(item._id)} className="text-slate-300 hover:text-red-500 transition-colors p-1"><X size={18}/></button>
                                           </div>
                                       </div>
                                   ))
@@ -184,44 +228,15 @@ export default function CommandePage({ params }) {
                                 disabled={cart.length === 0}
                                 className={`w-full py-4 rounded-xl text-white font-black text-lg hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${lieu === 'hebron' ? 'bg-orange-600 shadow-orange-200 shadow-lg' : 'bg-purple-600 shadow-purple-200 shadow-lg'}`}
                                 onClick={() => {
-                                    // 1. Sauvegarder le panier localement temporairement
                                     localStorage.setItem('tempRestaurantCart', JSON.stringify({ cart, cartTotal, lieu }));
-                                    // 2. Rediriger vers la vraie page de paiement
                                     window.location.href = `/gastronomie/checkout/${lieu}`;
                                 }}
                                 >
-                                    {cart.length === 0 ? "PANIER VIDE" : "PASSER À LA CAISSE"}
+                                  {cart.length === 0 ? "PANIER VIDE" : "PASSER À LA CAISSE"}
                               </button>
                           </div>
                       </>
                   )}
-
-                  {/* ÉTAPE 2 : PAIEMENT & LIVRAISON (Design Premium) */}
-                  
-
-                  {/* ÉTAPE 3 : SUCCÈS */}
-                  {cartStep === "success" && (
-                      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white">
-                          <div className={`w-24 h-24 bg-${themeColor}-100 text-${themeColor}-600 rounded-full flex items-center justify-center mb-6 animate-in zoom-in duration-500`}>
-                              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                          </div>
-                          <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Preuve reçue !</h2>
-                          <p className="text-slate-500 font-medium mb-8 leading-relaxed">Notre équipe vérifie votre paiement. Dès validation, la cuisine lance la préparation !</p>
-                          
-                          <div className="bg-slate-50 p-6 rounded-3xl w-full border border-slate-100 mb-8 shadow-inner">
-                              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Code de suivi</p>
-                              <p className={`text-3xl font-black text-${themeColor}-600 font-mono tracking-widest`}>{orderCode}</p>
-                          </div>
-
-                          <button 
-                            onClick={() => {setIsCartOpen(false); setCartStep("cart");}}
-                            className="w-full py-4 rounded-xl bg-slate-900 text-white font-black text-lg hover:bg-slate-800 transition-colors shadow-xl shadow-slate-200"
-                          >
-                              FERMER
-                          </button>
-                      </div>
-                  )}
-
               </div>
           </div>
       )}

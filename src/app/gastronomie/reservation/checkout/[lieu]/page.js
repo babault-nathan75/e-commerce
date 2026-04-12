@@ -309,8 +309,8 @@ export default function ReservationCheckoutPage({ params }) {
                         <div className="bg-slate-900 text-white p-6 rounded-2xl mt-6">
                             <p className="text-xs font-black uppercase tracking-widest opacity-70 mb-4">Envoyez {cartData.cartTotal.toLocaleString('fr-FR')} FCFA à :</p>
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-blue-300">Wave</span> 05 03 11 74 54</div>
-                                <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-yellow-300">MTN</span> 05 03 11 74 54</div>
+                                <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-blue-300">Wave</span> 07 04 47 40 02</div>
+                                <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-orange-300">Orange Money</span> 07 12 52 13 24</div>
                             </div>
                         </div>
 

@@ -1,7 +1,10 @@
 import { connectDB } from "@/lib/db";
 import { FoodOrder } from "@/models/FoodOrder";
 import { updateFoodOrderStatus } from "@/lib/actions/foodOrder";
-import { CheckCircle, Truck, XCircle, Clock, AlertTriangle, ExternalLink, User, MapPin, Phone, Eye, ArrowLeft, Search, X } from "lucide-react";
+import { 
+  CheckCircle, Truck, XCircle, Clock, ExternalLink, User, 
+  MapPin, Eye, ArrowLeft, Search, X, Plus, Store 
+} from "lucide-react";
 import Link from "next/link";
 
 // Force la page à se rafraîchir à chaque visite
@@ -163,37 +166,52 @@ export default async function AdminGastronomiePage({ searchParams }) {
             <Link href="/admin" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold mb-4 transition-colors">
                 <ArrowLeft size={20} /> Retour au menu principal
             </Link>
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Commandes Gastronomie</h1>
-                    <p className="text-slate-500 font-medium mt-1">Gérez les livraisons et repas.</p>
+                    <p className="text-slate-500 font-medium mt-1 mb-4">Gérez les livraisons et repas.</p>
+                    
+                    {/* NOUVEAUX BOUTONS D'ACTION */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Link href="/admin/gastronomie/create" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm">
+                            <Plus size={18} />
+                            Ajouter un plat
+                        </Link>
+                        <Link href="/admin/gastronomie/en-ligne" className="inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm">
+                            <Store size={18} />
+                            Plats en ligne
+                        </Link>
+                    </div>
                 </div>
 
                 {/* 🔍 BARRE DE RECHERCHE SERVEUR (NON DYNAMIQUE) */}
-                <form method="GET" action="/admin/gastronomie" className="flex w-full md:w-96 gap-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input 
-                            type="text" 
-                            name="search" 
-                            defaultValue={query}
-                            placeholder="Réf, Nom ou Téléphone..."
-                            className="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold text-slate-700 shadow-sm"
-                        />
-                        {query && (
-                            <Link href="/admin/gastronomie" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 transition-colors">
-                                <X size={18} />
-                            </Link>
-                        )}
-                    </div>
-                    <button type="submit" className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black hover:bg-slate-800 transition-all shadow-lg active:scale-95">
-                        OK
-                    </button>
-                </form>
+                <div className="flex flex-col items-end gap-3 w-full lg:w-auto mt-4 lg:mt-0">
+                  <form method="GET" action="/admin/gastronomie" className="flex w-full md:w-96 gap-2">
+                      <div className="relative flex-1">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input 
+                              type="text" 
+                              name="search" 
+                              defaultValue={query}
+                              placeholder="Réf, Nom ou Téléphone..."
+                              className="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold text-slate-700 shadow-sm"
+                          />
+                          {query && (
+                              <Link href="/admin/gastronomie" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 transition-colors">
+                                  <X size={18} />
+                              </Link>
+                          )}
+                      </div>
+                      <button type="submit" className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black hover:bg-slate-800 transition-all shadow-lg active:scale-95">
+                          OK
+                      </button>
+                  </form>
 
-                <div className="bg-white px-5 py-2 rounded-xl border border-slate-200 shadow-sm font-bold text-slate-700 flex items-center gap-2 shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    {orders.length} Résultat(s)
+                  <div className="bg-white px-5 py-2 rounded-xl border border-slate-200 shadow-sm font-bold text-slate-700 flex items-center gap-2 shrink-0">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                      {orders.length} Résultat(s)
+                  </div>
                 </div>
             </div>
         </div>

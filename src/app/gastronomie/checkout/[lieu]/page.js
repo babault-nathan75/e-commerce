@@ -116,16 +116,16 @@ export default function RestaurantCheckoutPage({ params }) {
                                 <div className="flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-sm font-black shadow-lg shadow-blue-500/30">W</div>
-                                        <span className="font-bold text-blue-50">Wave</span>
+                                        <span className="font-bold text-blue-50">Wave / Orange money</span>
                                     </div>
-                                    <span className="font-mono font-bold text-lg tracking-widest text-white">05 03 11 74 54</span>
+                                    <span className="font-mono font-bold text-lg tracking-widest text-white">07 04 47 40 02</span>
                                 </div>
                                 <div className="flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-sm font-black shadow-lg shadow-orange-500/30">M</div>
-                                        <span className="font-bold text-orange-50">MTN</span>
+                                        <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-sm font-black shadow-lg shadow-orange-500/30">M</div>
+                                        <span className="font-bold text-orange-50">Orange money</span>
                                     </div>
-                                    <span className="font-mono font-bold text-lg tracking-widest text-white">05 03 11 74 54</span>
+                                    <span className="font-mono font-bold text-lg tracking-widest text-white">07 12 52 13 24</span>
                                 </div>
                             </div>
                         </div>

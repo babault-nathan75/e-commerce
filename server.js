@@ -12,8 +12,9 @@ app.prepare().then(() => {
   createServer((req, res) => {
     const parsedUrl = parse(req.url, true);
     handle(req, res, parsedUrl);
-  }).listen(port, (err) => {
+  }).listen(port, "0.0.0.0", (err) => { // 👈 On force l'écoute sur toutes les interfaces
     if (err) throw err;
-    console.log(`> Ready on http://localhost:${port}`);
+    console.log(`> Application lancée sur le PORT: ${port}`);
+    console.log(`> URL: http://localhost:${port}`);
   });
 });

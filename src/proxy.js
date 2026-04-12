@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-export async function middleware(req) {
+export async function proxy (req) {
   const path = req.nextUrl.pathname;
   console.log(`🔒 [MIDDLEWARE] Accès à : ${path}`);
 

@@ -20,11 +20,6 @@ const nextConfig = {
     EMAIL_SERVER_PASSWORD: "rxli ewkc igjw chwv",
     EMAIL_FROM: "hebronivoireshops@gmail.com",
     ADMIN_EMAIL: "hebronivoireshops@gmail.com",
-
-    // CLOUDINARY (Pour la gestion des images)
-    CLOUDINARY_CLOUD_NAME: "dsdzhrhvv",
-    CLOUDINARY_API_KEY: "632761523917944",
-    CLOUDINARY_API_SECRET: "xEgEmzSwim8O1ELZgZ9xSep3etY",
   },
 
   images: {

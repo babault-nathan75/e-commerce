@@ -2,9 +2,24 @@
 
 import { connectDB } from "@/lib/db";
 import { MenuItem } from "@/models/MenuItem";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import cloudinary from "@/lib/cloudinary"; // 👈 On utilise ton nouvel utilitaire
 import { revalidatePath } from "next/cache";
+
+// Fonction utilitaire pour uploader vers Cloudinary (évite la répétition)
+const uploadToCloudinary = async (file, folder) => {
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      { folder: folder, resource_type: "auto" },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result.secure_url);
+      }
+    ).end(buffer);
+  });
+};
 
 // ==========================================
 // 1. CRÉER UN NOUVEAU PLAT
@@ -12,7 +27,7 @@ import { revalidatePath } from "next/cache";
 export async function createMenuItem(formData) {
   try {
     const name = formData.get("name");
-    const category = formData.get("category"); // 👈 On récupère la catégorie
+    const category = formData.get("category");
     const price = formData.get("price");
     const description = formData.get("description");
     const restaurant = formData.get("restaurant");
@@ -21,23 +36,15 @@ export async function createMenuItem(formData) {
     let imageUrl = null;
 
     if (file && file.size > 0) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const timestamp = Date.now();
-      const extension = file.name.split('.').pop() || 'jpg';
-      const fileName = `plat_${timestamp}_${Math.floor(Math.random() * 1000)}.${extension}`;
-      const uploadDir = path.join(process.cwd(), "public", "uploads", "menu");
-      await mkdir(uploadDir, { recursive: true });
-      const filePath = path.join(uploadDir, fileName);
-      await writeFile(filePath, buffer);
-      imageUrl = `/uploads/menu/${fileName}`;
+      // 🚀 Upload vers Cloudinary au lieu du disque local
+      imageUrl = await uploadToCloudinary(file, "menu_gastronomie");
     }
 
     await connectDB();
 
     await MenuItem.create({
       name,
-      category: category || "Plats de résistance", // 👈 On la sauvegarde ici
+      category: category || "Plats de résistance",
       price: Number(price),
       description,
       restaurant,
@@ -54,7 +61,7 @@ export async function createMenuItem(formData) {
 }
 
 // ==========================================
-// 2. BASCULER LA DISPONIBILITÉ (EN LIGNE / ÉPUISÉ)
+// 2. BASCULER LA DISPONIBILITÉ
 // ==========================================
 export async function toggleMenuItemStatus(id) {
   try {
@@ -77,6 +84,7 @@ export async function toggleMenuItemStatus(id) {
 export async function deleteMenuItem(id) {
   try {
     await connectDB();
+    // Note : On pourrait aussi supprimer l'image sur Cloudinary ici avec l'ID
     await MenuItem.findByIdAndDelete(id);
     revalidatePath("/admin/gastronomie/en-ligne");
     return { success: true };
@@ -110,7 +118,7 @@ export async function getMenuItemById(id) {
 export async function updateMenuItem(id, formData) {
   try {
     const name = formData.get("name");
-    const category = formData.get("category"); // 👈 On récupère la catégorie
+    const category = formData.get("category");
     const price = formData.get("price");
     const description = formData.get("description");
     const restaurant = formData.get("restaurant");
@@ -118,23 +126,15 @@ export async function updateMenuItem(id, formData) {
 
     let updateData = {
       name,
-      category: category || "Plats de résistance", // 👈 On la sauvegarde
+      category: category || "Plats de résistance",
       price: Number(price),
       description,
       restaurant,
     };
 
     if (file && file.size > 0) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const timestamp = Date.now();
-      const extension = file.name.split('.').pop() || 'jpg';
-      const fileName = `plat_${timestamp}_${Math.floor(Math.random() * 1000)}.${extension}`;
-      const uploadDir = path.join(process.cwd(), "public", "uploads", "menu");
-      await mkdir(uploadDir, { recursive: true });
-      const filePath = path.join(uploadDir, fileName);
-      await writeFile(filePath, buffer);
-      updateData.imageUrl = `/uploads/menu/${fileName}`;
+      // 🚀 Upload de la nouvelle image vers Cloudinary
+      updateData.imageUrl = await uploadToCloudinary(file, "menu_gastronomie");
     }
 
     await connectDB();
@@ -142,12 +142,13 @@ export async function updateMenuItem(id, formData) {
     revalidatePath("/admin/gastronomie/en-ligne");
     return { success: true };
   } catch (error) {
+    console.error("Erreur updateMenuItem:", error);
     return { success: false, error: "Erreur modification." };
   }
 }
 
 // ==========================================
-// 6. RÉCUPÉRER LE MENU PUBLIC D'UN RESTAURANT
+// 6. RÉCUPÉRER LE MENU PUBLIC
 // ==========================================
 export async function getPublicMenu(restaurant) {
   try {

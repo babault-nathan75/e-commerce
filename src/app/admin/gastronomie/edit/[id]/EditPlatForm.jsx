@@ -136,6 +136,11 @@ export default function EditPlatForm({ initialData }) {
                                 <option value="Desserts">Desserts</option>
                                 <option value="Boissons">Boissons</option>
                                 <option value="Spécialités">Spécialités</option>
+                                <option value="Petit dejeuner">Petit dejeuner</option>
+                                <option value="Snacks et encas">Snacks et encas</option>
+                                <option value="Plats rapides">Plats rapides</option>
+                                <option value="Fast-food">Fast-food</option>
+                                <option value="Accompagnement">Accompagnement</option>
                             </select>
                         </div>
 

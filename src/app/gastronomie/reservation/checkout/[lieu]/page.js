@@ -311,6 +311,7 @@ export default function ReservationCheckoutPage({ params }) {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-blue-300">Wave</span> 07 04 47 40 02</div>
                                 <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-orange-300">Orange Money</span> 07 12 52 13 24</div>
+                                <div className="bg-white/10 p-3 rounded-xl border border-white/5"><span className="font-bold text-yellow-300">MTN Money</span> 05 03 11 74 54</div>
                             </div>
                         </div>
 

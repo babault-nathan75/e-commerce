@@ -117,6 +117,13 @@ export default function Footer() {
                 >
                 07 12 52 13 24
                 </a>
+                /
+                <a
+                  href="tel:+2250503117454"
+                  className="text-[11px] font-black text-gray-300 uppercase tracking-tighter hover:text-orange-500 transition-colors"
+                >
+                05 03 11 74 54
+                </a>
               </li>
 
               <li className="flex items-center gap-4 group">

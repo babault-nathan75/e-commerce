@@ -142,9 +142,13 @@ export default function FAQPage() {
             </a>
             <p className="mt-6 text-sm opacity-80">
               Numero complementaire : <a 
-              href="https://wa.me/2250503117454"
+              href="https://wa.me/2250712521324"
               className="inline-flex items-center gap-2 bg-white text-orange-600 px-8 py-4 rounded-full font-black uppercase tracking-widest hover:scale-105 transition-transform"
             >07 12 52 13 24</a>
+            <a 
+              href="https://wa.me/2250503117454"
+              className="inline-flex items-center gap-2 bg-white text-orange-600 px-8 py-4 rounded-full font-black uppercase tracking-widest hover:scale-105 transition-transform"
+            >05 03 11 74 54</a>
             </p>
           </div>
         </div>
